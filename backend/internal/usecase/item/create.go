@@ -1,0 +1,75 @@
+// Package item contains the business logic for inventory item management.
+package item
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/Vallevas/Skopidom/internal/domain/entity"
+	"github.com/Vallevas/Skopidom/pkg/logger"
+)
+
+// Create validates input, checks uniqueness, and persists a new item.
+func (uc *itemUseCase) Create(ctx context.Context, input CreateInput) (*entity.Item, error) {
+	if err := validateCreateInput(input); err != nil {
+		return nil, err
+	}
+
+	// Ensure the barcode is not already registered.
+	exists, err := uc.items.BarcodeExists(ctx, input.Barcode)
+	if err != nil {
+		return nil, fmt.Errorf("item.Create barcodeExists: %w", err)
+	}
+	if exists {
+		return nil, fmt.Errorf("barcode %q: %w", input.Barcode, apperrors.ErrAlreadyExists)
+	}
+
+	// Verify that the referenced category exists.
+	if _, err := uc.categories.GetByID(ctx, input.CategoryID); err != nil {
+		return nil, fmt.Errorf("item.Create category: %w", err)
+	}
+
+	// Verify that the referenced room exists.
+	if _, err := uc.rooms.GetByID(ctx, input.RoomID); err != nil {
+		return nil, fmt.Errorf("item.Create room: %w", err)
+	}
+
+	item := &entity.Item{
+		Barcode:      input.Barcode,
+		Name:         input.Name,
+		CategoryID:   input.CategoryID,
+		RoomID:       input.RoomID,
+		Description:  input.Description,
+		PhotoURL:     input.PhotoURL,
+		Status:       entity.StatusActive,
+		CreatedBy:    input.ActorID,
+		LastEditedBy: input.ActorID,
+	}
+
+	if err := uc.items.Create(ctx, item); err != nil {
+		return nil, fmt.Errorf("item.Create persist: %w", err)
+	}
+
+	// Return the full record with relations by re-fetching.
+	return uc.items.GetByID(ctx, item.ID)
+}
+
+// validateCreateInput checks that mandatory fields are present.
+func validateCreateInput(input CreateInput) error {
+	if input.Barcode == "" {
+		return fmt.Errorf("barcode is required: %w", apperrors.ErrInvalidInput)
+	}
+	if input.Name == "" {
+		return fmt.Errorf("name is required: %w", apperrors.ErrInvalidInput)
+	}
+	if input.CategoryID == 0 {
+		return fmt.Errorf("category_id is required: %w", apperrors.ErrInvalidInput)
+	}
+	if input.RoomID == 0 {
+		return fmt.Errorf("room_id is required: %w", apperrors.ErrInvalidInput)
+	}
+	if input.ActorID == 0 {
+		return fmt.Errorf("actor_id is required: %w", apperrors.ErrInvalidInput)
+	}
+	return nil
+}
