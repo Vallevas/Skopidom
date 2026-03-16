@@ -73,7 +73,7 @@ func (r *ItemRepo) GetByID(ctx context.Context, id uint64) (*entity.Item, error)
 		return nil, fmt.Errorf("ItemRepo.GetByID: %w", err)
 	}
 	if len(items) == 0 {
-		return nil, apperrors.ErrNotFound
+		return nil, logger.ErrNotFound
 	}
 	return items[0], nil
 }
@@ -85,7 +85,7 @@ func (r *ItemRepo) GetByBarcode(ctx context.Context, barcode string) (*entity.It
 		return nil, fmt.Errorf("ItemRepo.GetByBarcode: %w", err)
 	}
 	if len(items) == 0 {
-		return nil, apperrors.ErrNotFound
+		return nil, logger.ErrNotFound
 	}
 	return items[0], nil
 }
@@ -113,7 +113,7 @@ func (r *ItemRepo) Update(ctx context.Context, item *entity.Item) error {
 	).Scan(&item.UpdatedAt)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return apperrors.ErrNotFound
+		return logger.ErrNotFound
 	}
 	if err != nil {
 		return fmt.Errorf("ItemRepo.Update: %w", err)
@@ -134,7 +134,7 @@ func (r *ItemRepo) UpdateStatus(ctx context.Context, item *entity.Item) error {
 	).Scan(&item.UpdatedAt)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return apperrors.ErrNotFound
+		return logger.ErrNotFound
 	}
 	if err != nil {
 		return fmt.Errorf("ItemRepo.UpdateStatus: %w", err)
@@ -151,7 +151,7 @@ func (r *ItemRepo) UpdateTxHash(ctx context.Context, id uint64, txHash string) e
 		return fmt.Errorf("ItemRepo.UpdateTxHash: %w", err)
 	}
 	if result.RowsAffected() == 0 {
-		return apperrors.ErrNotFound
+		return logger.ErrNotFound
 	}
 	return nil
 }

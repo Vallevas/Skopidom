@@ -41,7 +41,7 @@ func (r *CategoryRepo) GetByID(ctx context.Context, id uint64) (*entity.Category
 		`SELECT id, name FROM categories WHERE id = $1`, id,
 	).Scan(&cat.ID, &cat.Name)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, apperrors.ErrNotFound
+		return nil, logger.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("CategoryRepo.GetByID: %w", err)
@@ -78,7 +78,7 @@ func (r *CategoryRepo) Update(ctx context.Context, cat *entity.Category) error {
 		return fmt.Errorf("CategoryRepo.Update: %w", err)
 	}
 	if result.RowsAffected() == 0 {
-		return apperrors.ErrNotFound
+		return logger.ErrNotFound
 	}
 	return nil
 }
@@ -91,7 +91,7 @@ func (r *CategoryRepo) Delete(ctx context.Context, id uint64) error {
 		return fmt.Errorf("CategoryRepo.Delete: %w", err)
 	}
 	if result.RowsAffected() == 0 {
-		return apperrors.ErrNotFound
+		return logger.ErrNotFound
 	}
 	return nil
 }
@@ -125,7 +125,7 @@ func (r *BuildingRepo) GetByID(ctx context.Context, id uint64) (*entity.Building
 		`SELECT id, name, address FROM buildings WHERE id = $1`, id,
 	).Scan(&b.ID, &b.Name, &b.Address)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, apperrors.ErrNotFound
+		return nil, logger.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("BuildingRepo.GetByID: %w", err)
@@ -162,7 +162,7 @@ func (r *BuildingRepo) Update(ctx context.Context, b *entity.Building) error {
 		return fmt.Errorf("BuildingRepo.Update: %w", err)
 	}
 	if result.RowsAffected() == 0 {
-		return apperrors.ErrNotFound
+		return logger.ErrNotFound
 	}
 	return nil
 }
@@ -175,7 +175,7 @@ func (r *BuildingRepo) Delete(ctx context.Context, id uint64) error {
 		return fmt.Errorf("BuildingRepo.Delete: %w", err)
 	}
 	if result.RowsAffected() == 0 {
-		return apperrors.ErrNotFound
+		return logger.ErrNotFound
 	}
 	return nil
 }
@@ -213,7 +213,7 @@ func (r *RoomRepo) GetByID(ctx context.Context, id uint64) (*entity.Room, error)
 	).Scan(&room.ID, &room.Name, &room.BuildingID,
 		&room.Building.Name, &room.Building.Address)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, apperrors.ErrNotFound
+		return nil, logger.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("RoomRepo.GetByID: %w", err)
@@ -290,7 +290,7 @@ func (r *RoomRepo) Update(ctx context.Context, room *entity.Room) error {
 		return fmt.Errorf("RoomRepo.Update: %w", err)
 	}
 	if result.RowsAffected() == 0 {
-		return apperrors.ErrNotFound
+		return logger.ErrNotFound
 	}
 	return nil
 }
@@ -303,7 +303,7 @@ func (r *RoomRepo) Delete(ctx context.Context, id uint64) error {
 		return fmt.Errorf("RoomRepo.Delete: %w", err)
 	}
 	if result.RowsAffected() == 0 {
-		return apperrors.ErrNotFound
+		return logger.ErrNotFound
 	}
 	return nil
 }

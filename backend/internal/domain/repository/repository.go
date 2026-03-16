@@ -67,6 +67,10 @@ type UserRepository interface {
 
 	// EmailExists reports whether an email address is already registered.
 	EmailExists(ctx context.Context, email string) (bool, error)
+
+	// CountByRole returns the number of users assigned the given role.
+	// Used to prevent deleting or downgrading the last admin account.
+	CountByRole(ctx context.Context, role entity.UserRole) (int, error)
 }
 
 // CategoryRepository defines the persistence contract for item categories.
@@ -97,3 +101,4 @@ type BuildingRepository interface {
 	Update(ctx context.Context, building *entity.Building) error
 	Delete(ctx context.Context, id uint64) error
 }
+

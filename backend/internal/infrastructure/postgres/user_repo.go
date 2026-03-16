@@ -56,7 +56,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id uint64) (*entity.User, error)
 		&user.CreatedAt, &user.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, apperrors.ErrNotFound
+		return nil, logger.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("UserRepo.GetByID: %w", err)
@@ -78,7 +78,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*entity.User, 
 		&user.CreatedAt, &user.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, apperrors.ErrNotFound
+		return nil, logger.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("UserRepo.GetByEmail: %w", err)
@@ -129,7 +129,7 @@ func (r *UserRepo) Update(ctx context.Context, user *entity.User) error {
 	).Scan(&user.UpdatedAt)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return apperrors.ErrNotFound
+		return logger.ErrNotFound
 	}
 	if err != nil {
 		return fmt.Errorf("UserRepo.Update: %w", err)
@@ -144,7 +144,7 @@ func (r *UserRepo) Delete(ctx context.Context, id uint64) error {
 		return fmt.Errorf("UserRepo.Delete: %w", err)
 	}
 	if result.RowsAffected() == 0 {
-		return apperrors.ErrNotFound
+		return logger.ErrNotFound
 	}
 	return nil
 }
@@ -161,3 +161,16 @@ func (r *UserRepo) EmailExists(ctx context.Context, email string) (bool, error) 
 	}
 	return exists, nil
 }
+
+// CountByRole returns the number of users assigned the given role.
+func (r *UserRepo) CountByRole(ctx context.Context, role entity.UserRole) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM users WHERE role = $1`, role,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("UserRepo.CountByRole: %w", err)
+	}
+	return count, nil
+}
+

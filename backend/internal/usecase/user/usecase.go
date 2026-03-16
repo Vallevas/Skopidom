@@ -29,7 +29,8 @@ type UseCase interface {
 	Update(ctx context.Context, input UpdateInput) (*entity.User, error)
 
 	// Delete permanently removes a user account.
-	Delete(ctx context.Context, id uint64) error
+	// actorID is the ID of the admin performing the deletion.
+	Delete(ctx context.Context, id uint64, actorID uint64) error
 }
 
 // RegisterInput holds data required to create a new user account.
@@ -42,7 +43,9 @@ type RegisterInput struct {
 
 // UpdateInput holds the fields that can be changed on an existing user.
 type UpdateInput struct {
-	UserID   uint64
+	UserID  uint64
+	ActorID uint64
+	// FullName and Role are optional — empty value means no change.
 	FullName string
 	Role     entity.UserRole
 }
@@ -71,7 +74,7 @@ func (uc *userUseCase) Register(
 		return nil, fmt.Errorf("user.Register emailExists: %w", err)
 	}
 	if emailTaken {
-		return nil, fmt.Errorf("email %q: %w", input.Email, apperrors.ErrAlreadyExists)
+		return nil, fmt.Errorf("email %q: %w", input.Email, logger.ErrAlreadyExists)
 	}
 
 	// Use bcrypt cost 12 — sufficient for a university-scale system.
@@ -108,19 +111,19 @@ func (uc *userUseCase) Login(
 ) (*entity.User, error) {
 	if email == "" || password == "" {
 		return nil, fmt.Errorf("email and password are required: %w",
-			apperrors.ErrInvalidInput)
+			logger.ErrInvalidInput)
 	}
 
 	user, err := uc.users.GetByEmail(ctx, email)
 	if err != nil {
 		// Return generic error to avoid leaking whether the email exists.
-		return nil, apperrors.ErrUnauthorized
+		return nil, logger.ErrUnauthorized
 	}
 
 	if err := bcrypt.CompareHashAndPassword(
 		[]byte(user.PasswordHash), []byte(password),
 	); err != nil {
-		return nil, apperrors.ErrUnauthorized
+		return nil, logger.ErrUnauthorized
 	}
 
 	user.PasswordHash = ""
@@ -155,12 +158,29 @@ func (uc *userUseCase) Update(
 	input UpdateInput,
 ) (*entity.User, error) {
 	if input.UserID == 0 {
-		return nil, fmt.Errorf("user_id is required: %w", apperrors.ErrInvalidInput)
+		return nil, fmt.Errorf("user_id is required: %w", logger.ErrInvalidInput)
 	}
 
 	user, err := uc.users.GetByID(ctx, input.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("user.Update fetch: %w", err)
+	}
+
+	// Prevent an admin from downgrading their own role when they are the
+	// last admin — results in a system with no way to manage users.
+	if input.UserID == input.ActorID &&
+		user.Role == entity.RoleAdmin &&
+		input.Role != "" &&
+		input.Role != entity.RoleAdmin {
+		count, err := uc.users.CountByRole(ctx, entity.RoleAdmin)
+		if err != nil {
+			return nil, fmt.Errorf("user.Update countAdmins: %w", err)
+		}
+		if count <= 1 {
+			return nil, fmt.Errorf(
+				"cannot downgrade the last admin account: %w", logger.ErrForbidden,
+			)
+		}
 	}
 
 	if input.FullName != "" {
@@ -179,7 +199,31 @@ func (uc *userUseCase) Update(
 }
 
 // Delete removes a user account permanently.
-func (uc *userUseCase) Delete(ctx context.Context, id uint64) error {
+// Guards:
+//   - An admin cannot delete their own account.
+//   - The last admin account cannot be deleted — this would lock out the system.
+func (uc *userUseCase) Delete(ctx context.Context, id uint64, actorID uint64) error {
+	if id == actorID {
+		return fmt.Errorf("cannot delete own account: %w", logger.ErrForbidden)
+	}
+
+	target, err := uc.users.GetByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("user.Delete fetch: %w", err)
+	}
+
+	if target.Role == entity.RoleAdmin {
+		count, err := uc.users.CountByRole(ctx, entity.RoleAdmin)
+		if err != nil {
+			return fmt.Errorf("user.Delete countAdmins: %w", err)
+		}
+		if count <= 1 {
+			return fmt.Errorf(
+				"cannot delete the last admin account: %w", logger.ErrForbidden,
+			)
+		}
+	}
+
 	if err := uc.users.Delete(ctx, id); err != nil {
 		return fmt.Errorf("user.Delete: %w", err)
 	}
@@ -189,14 +233,14 @@ func (uc *userUseCase) Delete(ctx context.Context, id uint64) error {
 // validateRegisterInput checks that all required fields are non-empty.
 func validateRegisterInput(input RegisterInput) error {
 	if input.FullName == "" {
-		return fmt.Errorf("full_name is required: %w", apperrors.ErrInvalidInput)
+		return fmt.Errorf("full_name is required: %w", logger.ErrInvalidInput)
 	}
 	if input.Email == "" {
-		return fmt.Errorf("email is required: %w", apperrors.ErrInvalidInput)
+		return fmt.Errorf("email is required: %w", logger.ErrInvalidInput)
 	}
 	if len(input.Password) < 8 {
 		return fmt.Errorf("password must be at least 8 characters: %w",
-			apperrors.ErrInvalidInput)
+			logger.ErrInvalidInput)
 	}
 	return nil
 }
