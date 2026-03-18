@@ -3,118 +3,103 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Vallevas/Skopidom/internal/domain/entity"
 	"github.com/Vallevas/Skopidom/internal/domain/repository"
+	"github.com/Vallevas/Skopidom/internal/infrastructure/postgres/db"
 	"github.com/Vallevas/Skopidom/pkg/logger"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 )
 
-// itemSelectBase is the single source of truth for the item SELECT query.
-// All item queries (GetByID, GetByBarcode, List) use this base via queryItems.
-const itemSelectBase = `
-	SELECT
-		i.id, i.barcode, i.name,
-		i.category_id, c.name,
-		i.room_id, rm.name,
-		rm.building_id, b.name, b.address,
-		i.description, i.photo_url, i.status, i.tx_hash,
-		i.created_at, i.updated_at,
-		i.created_by,
-		uc.full_name, uc.email, uc.role, uc.created_at, uc.updated_at,
-		i.last_edited_by,
-		ue.full_name, ue.email, ue.role, ue.created_at, ue.updated_at
-	FROM items i
-	JOIN categories c  ON c.id  = i.category_id
-	JOIN rooms      rm ON rm.id = i.room_id
-	JOIN buildings  b  ON b.id  = rm.building_id
-	JOIN users      uc ON uc.id = i.created_by
-	JOIN users      ue ON ue.id = i.last_edited_by`
-
-// ItemRepo implements repository.ItemRepository using PostgreSQL.
+// ItemRepo implements repository.ItemRepository using sqlc-generated queries.
 type ItemRepo struct {
-	pool *pgxpool.Pool
+	queries *db.Queries
 }
 
 // NewItemRepo constructs a new ItemRepo backed by the given connection pool.
+// pgxpool is adapted to database/sql via stdlib so sqlc-generated code can use it.
 func NewItemRepo(pool *pgxpool.Pool) *ItemRepo {
-	return &ItemRepo{pool: pool}
+	return &ItemRepo{queries: db.New(stdlib.OpenDBFromPool(pool))}
 }
 
 // Create inserts a new item row and populates the generated ID and timestamps.
 func (r *ItemRepo) Create(ctx context.Context, item *entity.Item) error {
-	query := `
-		INSERT INTO items
-			(barcode, name, category_id, room_id, description,
-			 photo_url, status, created_by, last_edited_by)
-		VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, $7)
-		RETURNING id, created_at, updated_at`
-
-	err := r.pool.QueryRow(ctx, query,
-		item.Barcode, item.Name,
-		item.CategoryID, item.RoomID,
-		item.Description, item.PhotoURL,
-		item.CreatedBy,
-	).Scan(&item.ID, &item.CreatedAt, &item.UpdatedAt)
-
+	row, err := r.queries.CreateItem(ctx, db.CreateItemParams{
+		Barcode:     item.Barcode,
+		Name:        item.Name,
+		CategoryID:  int64(item.CategoryID),
+		RoomID:      int64(item.RoomID),
+		Description: item.Description,
+		PhotoUrl:    item.PhotoURL,
+		CreatedBy:   int64(item.CreatedBy),
+	})
 	if err != nil {
 		return fmt.Errorf("ItemRepo.Create: %w", err)
 	}
+
+	item.ID = uint64(row.ID)
+	item.CreatedAt = row.CreatedAt
+	item.UpdatedAt = row.UpdatedAt
 	return nil
 }
 
 // GetByID returns the item with the given ID or ErrNotFound.
 func (r *ItemRepo) GetByID(ctx context.Context, id uint64) (*entity.Item, error) {
-	items, err := r.queryItems(ctx, "WHERE i.id = $1", id)
+	row, err := r.queries.GetItemByID(ctx, int64(id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, logger.ErrNotFound
+	}
 	if err != nil {
 		return nil, fmt.Errorf("ItemRepo.GetByID: %w", err)
 	}
-	if len(items) == 0 {
-		return nil, logger.ErrNotFound
-	}
-	return items[0], nil
+	return mapItemDetail(row), nil
 }
 
 // GetByBarcode returns the item matching the barcode or ErrNotFound.
 func (r *ItemRepo) GetByBarcode(ctx context.Context, barcode string) (*entity.Item, error) {
-	items, err := r.queryItems(ctx, "WHERE i.barcode = $1", barcode)
+	row, err := r.queries.GetItemByBarcode(ctx, barcode)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, logger.ErrNotFound
+	}
 	if err != nil {
 		return nil, fmt.Errorf("ItemRepo.GetByBarcode: %w", err)
 	}
-	if len(items) == 0 {
-		return nil, logger.ErrNotFound
-	}
-	return items[0], nil
+	return mapItemDetail(row), nil
 }
 
 // List returns items matching the provided filter.
 func (r *ItemRepo) List(ctx context.Context, filter repository.ItemFilter) ([]*entity.Item, error) {
-	where, args := buildItemWhere(filter)
-	items, err := r.queryItems(ctx, where, args...)
+	rows, err := r.queries.ListItems(ctx, db.ListItemsParams{
+		CategoryID: nullInt64(filter.CategoryID),
+		RoomID:     nullInt64(filter.RoomID),
+		Status:     nullString((*string)(filter.Status)),
+		DateFrom:   nullTime(filter.DateFrom),
+		DateTo:     nullTime(filter.DateTo),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("ItemRepo.List: %w", err)
+	}
+
+	items := make([]*entity.Item, len(rows))
+	for i, row := range rows {
+		items[i] = mapItemDetail(row)
 	}
 	return items, nil
 }
 
 // Update persists changes to Description, PhotoURL, and UpdatedAt.
 func (r *ItemRepo) Update(ctx context.Context, item *entity.Item) error {
-	query := `
-		UPDATE items
-		SET description = $1, photo_url = $2, last_edited_by = $3, updated_at = NOW()
-		WHERE id = $4
-		RETURNING updated_at`
-
-	err := r.pool.QueryRow(ctx, query,
-		item.Description, item.PhotoURL, item.LastEditedBy, item.ID,
-	).Scan(&item.UpdatedAt)
-
-	if errors.Is(err, pgx.ErrNoRows) {
-		return logger.ErrNotFound
-	}
+	err := r.queries.UpdateItem(ctx, db.UpdateItemParams{
+		Description:  item.Description,
+		PhotoUrl:     item.PhotoURL,
+		LastEditedBy: int64(item.LastEditedBy),
+		ID:           int64(item.ID),
+	})
 	if err != nil {
 		return fmt.Errorf("ItemRepo.Update: %w", err)
 	}
@@ -123,19 +108,11 @@ func (r *ItemRepo) Update(ctx context.Context, item *entity.Item) error {
 
 // UpdateStatus persists a lifecycle status change (e.g. disposed).
 func (r *ItemRepo) UpdateStatus(ctx context.Context, item *entity.Item) error {
-	query := `
-		UPDATE items
-		SET status = $1, last_edited_by = $2, updated_at = NOW()
-		WHERE id = $3
-		RETURNING updated_at`
-
-	err := r.pool.QueryRow(ctx, query,
-		item.Status, item.LastEditedBy, item.ID,
-	).Scan(&item.UpdatedAt)
-
-	if errors.Is(err, pgx.ErrNoRows) {
-		return logger.ErrNotFound
-	}
+	err := r.queries.UpdateItemStatus(ctx, db.UpdateItemStatusParams{
+		Status:       string(item.Status),
+		LastEditedBy: int64(item.LastEditedBy),
+		ID:           int64(item.ID),
+	})
 	if err != nil {
 		return fmt.Errorf("ItemRepo.UpdateStatus: %w", err)
 	}
@@ -144,128 +121,106 @@ func (r *ItemRepo) UpdateStatus(ctx context.Context, item *entity.Item) error {
 
 // UpdateTxHash stores the blockchain transaction hash for an item.
 func (r *ItemRepo) UpdateTxHash(ctx context.Context, id uint64, txHash string) error {
-	result, err := r.pool.Exec(ctx,
-		`UPDATE items SET tx_hash = $1 WHERE id = $2`, txHash, id,
-	)
+	err := r.queries.UpdateItemTxHash(ctx, db.UpdateItemTxHashParams{
+		TxHash: txHash,
+		ID:     int64(id),
+	})
 	if err != nil {
 		return fmt.Errorf("ItemRepo.UpdateTxHash: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return logger.ErrNotFound
 	}
 	return nil
 }
 
 // BarcodeExists reports whether the given barcode is already in use.
 func (r *ItemRepo) BarcodeExists(ctx context.Context, barcode string) (bool, error) {
-	var exists bool
-	err := r.pool.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM items WHERE barcode = $1)`, barcode,
-	).Scan(&exists)
+	exists, err := r.queries.BarcodeExists(ctx, barcode)
 	if err != nil {
 		return false, fmt.Errorf("ItemRepo.BarcodeExists: %w", err)
 	}
 	return exists, nil
 }
 
-// ── private helpers ───────────────────────────────────────────────────────────
+// ── mapping ───────────────────────────────────────────────────────────────────
 
-// queryItems executes itemSelectBase with an optional WHERE clause and args,
-// scans all rows, and returns the result slice.
-// It is the single execution point for all item SELECT operations.
-func (r *ItemRepo) queryItems(ctx context.Context, where string, args ...any) ([]*entity.Item, error) {
-	query := itemSelectBase + "\n\t" + where + "\n\tORDER BY i.created_at DESC"
+// mapItemDetail converts a sqlc-generated ItemDetail row to a domain entity.
+// This is the single place where the DB representation maps to domain types.
+func mapItemDetail(row db.ItemDetail) *entity.Item {
+	return &entity.Item{
+		ID:      uint64(row.ID),
+		Barcode: row.Barcode,
+		Name:    row.Name,
 
-	rows, err := r.pool.Query(ctx, query, args...)
-	if err != nil {
-		return nil, err
+		CategoryID: uint64(row.CategoryID),
+		Category: &entity.Category{
+			ID:   uint64(row.CategoryID),
+			Name: row.CategoryName,
+		},
+
+		RoomID: uint64(row.RoomID),
+		Room: &entity.Room{
+			ID:         uint64(row.RoomID),
+			Name:       row.RoomName,
+			BuildingID: uint64(row.BuildingID),
+			Building: &entity.Building{
+				ID:      uint64(row.BuildingID),
+				Name:    row.BuildingName,
+				Address: row.BuildingAddress,
+			},
+		},
+
+		Description: row.Description,
+		PhotoURL:    row.PhotoUrl,
+		Status:      entity.ItemStatus(row.Status),
+		TxHash:      row.TxHash,
+
+		CreatedAt: row.CreatedAt,
+		UpdatedAt: row.UpdatedAt,
+
+		CreatedBy: uint64(row.CreatedBy),
+		Creator: &entity.User{
+			ID:        uint64(row.CreatedBy),
+			FullName:  row.CreatorFullName,
+			Email:     row.CreatorEmail,
+			Role:      entity.UserRole(row.CreatorRole),
+			CreatedAt: row.CreatorCreatedAt,
+			UpdatedAt: row.CreatorUpdatedAt,
+		},
+
+		LastEditedBy: uint64(row.LastEditedBy),
+		LastEditor: &entity.User{
+			ID:        uint64(row.LastEditedBy),
+			FullName:  row.EditorFullName,
+			Email:     row.EditorEmail,
+			Role:      entity.UserRole(row.EditorRole),
+			CreatedAt: row.EditorCreatedAt,
+			UpdatedAt: row.EditorUpdatedAt,
+		},
 	}
-	defer rows.Close()
-
-	items := make([]*entity.Item, 0)
-	for rows.Next() {
-		item, err := scanItem(rows)
-		if err != nil {
-			return nil, fmt.Errorf("scan: %w", err)
-		}
-		items = append(items, item)
-	}
-	return items, rows.Err()
 }
 
-// buildItemWhere constructs a WHERE clause and argument slice from an ItemFilter.
-// Returns an empty string and nil args if no filters are set.
-func buildItemWhere(filter repository.ItemFilter) (string, []any) {
-	args := make([]any, 0, 5)
-	clause := "WHERE 1=1"
-	idx := 1
+// ── sql.Null* helpers ─────────────────────────────────────────────────────────
 
-	if filter.CategoryID != nil {
-		clause += fmt.Sprintf(" AND i.category_id = $%d", idx)
-		args = append(args, *filter.CategoryID)
-		idx++
+// nullInt64 converts a nullable *uint64 filter to sql.NullInt64.
+func nullInt64(v *uint64) sql.NullInt64 {
+	if v == nil {
+		return sql.NullInt64{}
 	}
-	if filter.RoomID != nil {
-		clause += fmt.Sprintf(" AND i.room_id = $%d", idx)
-		args = append(args, *filter.RoomID)
-		idx++
-	}
-	if filter.Status != nil {
-		clause += fmt.Sprintf(" AND i.status = $%d", idx)
-		args = append(args, *filter.Status)
-		idx++
-	}
-	if filter.DateFrom != nil {
-		clause += fmt.Sprintf(" AND i.created_at >= $%d", idx)
-		args = append(args, *filter.DateFrom)
-		idx++
-	}
-	if filter.DateTo != nil {
-		clause += fmt.Sprintf(" AND i.created_at <= $%d", idx)
-		args = append(args, *filter.DateTo)
-		idx++
-	}
-
-	return clause, args
+	return sql.NullInt64{Int64: int64(*v), Valid: true}
 }
 
-// rowScanner is satisfied by both pgx.Row and pgx.Rows.
-type rowScanner interface {
-	Scan(dest ...any) error
+// nullString converts a nullable *string filter to sql.NullString.
+func nullString(v *string) sql.NullString {
+	if v == nil {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: *v, Valid: true}
 }
 
-// scanItem maps a single database row to a fully-populated Item value.
-func scanItem(row rowScanner) (*entity.Item, error) {
-	item := &entity.Item{
-		Category:   &entity.Category{},
-		Room:       &entity.Room{Building: &entity.Building{}},
-		Creator:    &entity.User{},
-		LastEditor: &entity.User{},
+// nullTime converts a nullable *time.Time filter to sql.NullTime.
+func nullTime(v *time.Time) sql.NullTime {
+	if v == nil {
+		return sql.NullTime{}
 	}
-
-	err := row.Scan(
-		&item.ID, &item.Barcode, &item.Name,
-		&item.CategoryID, &item.Category.Name,
-		&item.RoomID, &item.Room.Name,
-		&item.Room.BuildingID, &item.Room.Building.Name, &item.Room.Building.Address,
-		&item.Description, &item.PhotoURL, &item.Status, &item.TxHash,
-		&item.CreatedAt, &item.UpdatedAt,
-		&item.CreatedBy,
-		&item.Creator.FullName, &item.Creator.Email,
-		&item.Creator.Role, &item.Creator.CreatedAt, &item.Creator.UpdatedAt,
-		&item.LastEditedBy,
-		&item.LastEditor.FullName, &item.LastEditor.Email,
-		&item.LastEditor.Role, &item.LastEditor.CreatedAt, &item.LastEditor.UpdatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	item.Category.ID = item.CategoryID
-	item.Room.ID = item.RoomID
-	item.Room.Building.ID = item.Room.BuildingID
-	item.Creator.ID = item.CreatedBy
-	item.LastEditor.ID = item.LastEditedBy
-
-	return item, nil
+	return sql.NullTime{Time: *v, Valid: true}
 }
+

@@ -3,307 +3,267 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
 	"github.com/Vallevas/Skopidom/internal/domain/entity"
+	"github.com/Vallevas/Skopidom/internal/infrastructure/postgres/db"
 	"github.com/Vallevas/Skopidom/pkg/logger"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 )
 
-// ── CategoryRepo ─────────────────────────────────────────────────────────────
+// ── CategoryRepo ──────────────────────────────────────────────────────────────
 
-// CategoryRepo implements repository.CategoryRepository using PostgreSQL.
+// CategoryRepo implements repository.CategoryRepository using sqlc-generated queries.
 type CategoryRepo struct {
-	pool *pgxpool.Pool
+	queries *db.Queries
 }
 
 // NewCategoryRepo constructs a CategoryRepo backed by the given pool.
 func NewCategoryRepo(pool *pgxpool.Pool) *CategoryRepo {
-	return &CategoryRepo{pool: pool}
+	return &CategoryRepo{queries: db.New(stdlib.OpenDBFromPool(pool))}
 }
 
 func (r *CategoryRepo) Create(ctx context.Context, cat *entity.Category) error {
-	err := r.pool.QueryRow(ctx,
-		`INSERT INTO categories (name) VALUES ($1) RETURNING id`,
-		cat.Name,
-	).Scan(&cat.ID)
+	id, err := r.queries.CreateCategory(ctx, cat.Name)
 	if err != nil {
 		return fmt.Errorf("CategoryRepo.Create: %w", err)
 	}
+	cat.ID = uint64(id)
 	return nil
 }
 
 func (r *CategoryRepo) GetByID(ctx context.Context, id uint64) (*entity.Category, error) {
-	cat := &entity.Category{}
-	err := r.pool.QueryRow(ctx,
-		`SELECT id, name FROM categories WHERE id = $1`, id,
-	).Scan(&cat.ID, &cat.Name)
-	if errors.Is(err, pgx.ErrNoRows) {
+	row, err := r.queries.GetCategoryByID(ctx, int64(id))
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, logger.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("CategoryRepo.GetByID: %w", err)
 	}
-	return cat, nil
+	return &entity.Category{ID: uint64(row.ID), Name: row.Name}, nil
 }
 
 func (r *CategoryRepo) List(ctx context.Context) ([]*entity.Category, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT id, name FROM categories ORDER BY name ASC`,
-	)
+	rows, err := r.queries.ListCategories(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("CategoryRepo.List: %w", err)
 	}
-	defer rows.Close()
-
-	cats := make([]*entity.Category, 0)
-	for rows.Next() {
-		cat := &entity.Category{}
-		if err := rows.Scan(&cat.ID, &cat.Name); err != nil {
-			return nil, fmt.Errorf("CategoryRepo.List scan: %w", err)
-		}
-		cats = append(cats, cat)
+	cats := make([]*entity.Category, len(rows))
+	for i, row := range rows {
+		cats[i] = &entity.Category{ID: uint64(row.ID), Name: row.Name}
 	}
-	return cats, rows.Err()
+	return cats, nil
 }
 
 func (r *CategoryRepo) Update(ctx context.Context, cat *entity.Category) error {
-	result, err := r.pool.Exec(ctx,
-		`UPDATE categories SET name = $1 WHERE id = $2`,
-		cat.Name, cat.ID,
-	)
+	err := r.queries.UpdateCategory(ctx, db.UpdateCategoryParams{
+		Name: cat.Name,
+		ID:   int64(cat.ID),
+	})
 	if err != nil {
 		return fmt.Errorf("CategoryRepo.Update: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return logger.ErrNotFound
 	}
 	return nil
 }
 
 func (r *CategoryRepo) Delete(ctx context.Context, id uint64) error {
-	result, err := r.pool.Exec(ctx,
-		`DELETE FROM categories WHERE id = $1`, id,
-	)
-	if err != nil {
+	if err := r.queries.DeleteCategory(ctx, int64(id)); err != nil {
 		return fmt.Errorf("CategoryRepo.Delete: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return logger.ErrNotFound
 	}
 	return nil
 }
 
 // ── BuildingRepo ──────────────────────────────────────────────────────────────
 
-// BuildingRepo implements repository.BuildingRepository using PostgreSQL.
+// BuildingRepo implements repository.BuildingRepository using sqlc-generated queries.
 type BuildingRepo struct {
-	pool *pgxpool.Pool
+	queries *db.Queries
 }
 
 // NewBuildingRepo constructs a BuildingRepo backed by the given pool.
 func NewBuildingRepo(pool *pgxpool.Pool) *BuildingRepo {
-	return &BuildingRepo{pool: pool}
+	return &BuildingRepo{queries: db.New(stdlib.OpenDBFromPool(pool))}
 }
 
 func (r *BuildingRepo) Create(ctx context.Context, b *entity.Building) error {
-	err := r.pool.QueryRow(ctx,
-		`INSERT INTO buildings (name, address) VALUES ($1, $2) RETURNING id`,
-		b.Name, b.Address,
-	).Scan(&b.ID)
+	id, err := r.queries.CreateBuilding(ctx, db.CreateBuildingParams{
+		Name:    b.Name,
+		Address: b.Address,
+	})
 	if err != nil {
 		return fmt.Errorf("BuildingRepo.Create: %w", err)
 	}
+	b.ID = uint64(id)
 	return nil
 }
 
 func (r *BuildingRepo) GetByID(ctx context.Context, id uint64) (*entity.Building, error) {
-	b := &entity.Building{}
-	err := r.pool.QueryRow(ctx,
-		`SELECT id, name, address FROM buildings WHERE id = $1`, id,
-	).Scan(&b.ID, &b.Name, &b.Address)
-	if errors.Is(err, pgx.ErrNoRows) {
+	row, err := r.queries.GetBuildingByID(ctx, int64(id))
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, logger.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("BuildingRepo.GetByID: %w", err)
 	}
-	return b, nil
+	return &entity.Building{ID: uint64(row.ID), Name: row.Name, Address: row.Address}, nil
 }
 
 func (r *BuildingRepo) List(ctx context.Context) ([]*entity.Building, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT id, name, address FROM buildings ORDER BY name ASC`,
-	)
+	rows, err := r.queries.ListBuildings(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("BuildingRepo.List: %w", err)
 	}
-	defer rows.Close()
-
-	buildings := make([]*entity.Building, 0)
-	for rows.Next() {
-		b := &entity.Building{}
-		if err := rows.Scan(&b.ID, &b.Name, &b.Address); err != nil {
-			return nil, fmt.Errorf("BuildingRepo.List scan: %w", err)
+	buildings := make([]*entity.Building, len(rows))
+	for i, row := range rows {
+		buildings[i] = &entity.Building{
+			ID:      uint64(row.ID),
+			Name:    row.Name,
+			Address: row.Address,
 		}
-		buildings = append(buildings, b)
 	}
-	return buildings, rows.Err()
+	return buildings, nil
 }
 
 func (r *BuildingRepo) Update(ctx context.Context, b *entity.Building) error {
-	result, err := r.pool.Exec(ctx,
-		`UPDATE buildings SET name = $1, address = $2 WHERE id = $3`,
-		b.Name, b.Address, b.ID,
-	)
+	err := r.queries.UpdateBuilding(ctx, db.UpdateBuildingParams{
+		Name:    b.Name,
+		Address: b.Address,
+		ID:      int64(b.ID),
+	})
 	if err != nil {
 		return fmt.Errorf("BuildingRepo.Update: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return logger.ErrNotFound
 	}
 	return nil
 }
 
 func (r *BuildingRepo) Delete(ctx context.Context, id uint64) error {
-	result, err := r.pool.Exec(ctx,
-		`DELETE FROM buildings WHERE id = $1`, id,
-	)
-	if err != nil {
+	if err := r.queries.DeleteBuilding(ctx, int64(id)); err != nil {
 		return fmt.Errorf("BuildingRepo.Delete: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return logger.ErrNotFound
 	}
 	return nil
 }
 
-// ── RoomRepo ─────────────────────────────────────────────────────────────────
+// ── RoomRepo ──────────────────────────────────────────────────────────────────
 
-// RoomRepo implements repository.RoomRepository using PostgreSQL.
+// RoomRepo implements repository.RoomRepository using sqlc-generated queries.
 type RoomRepo struct {
-	pool *pgxpool.Pool
+	queries *db.Queries
 }
 
 // NewRoomRepo constructs a RoomRepo backed by the given pool.
 func NewRoomRepo(pool *pgxpool.Pool) *RoomRepo {
-	return &RoomRepo{pool: pool}
+	return &RoomRepo{queries: db.New(stdlib.OpenDBFromPool(pool))}
 }
 
 func (r *RoomRepo) Create(ctx context.Context, room *entity.Room) error {
-	err := r.pool.QueryRow(ctx,
-		`INSERT INTO rooms (name, building_id) VALUES ($1, $2) RETURNING id`,
-		room.Name, room.BuildingID,
-	).Scan(&room.ID)
+	id, err := r.queries.CreateRoom(ctx, db.CreateRoomParams{
+		Name:       room.Name,
+		BuildingID: int64(room.BuildingID),
+	})
 	if err != nil {
 		return fmt.Errorf("RoomRepo.Create: %w", err)
 	}
+	room.ID = uint64(id)
 	return nil
 }
 
 func (r *RoomRepo) GetByID(ctx context.Context, id uint64) (*entity.Room, error) {
-	room := &entity.Room{Building: &entity.Building{}}
-	err := r.pool.QueryRow(ctx,
-		`SELECT r.id, r.name, r.building_id, b.name, b.address
-		 FROM rooms r
-		 JOIN buildings b ON b.id = r.building_id
-		 WHERE r.id = $1`, id,
-	).Scan(&room.ID, &room.Name, &room.BuildingID,
-		&room.Building.Name, &room.Building.Address)
-	if errors.Is(err, pgx.ErrNoRows) {
+	row, err := r.queries.GetRoomByID(ctx, int64(id))
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, logger.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("RoomRepo.GetByID: %w", err)
 	}
-	room.Building.ID = room.BuildingID
-	return room, nil
+	return mapRoomFromGetByID(row), nil
 }
 
 func (r *RoomRepo) List(ctx context.Context) ([]*entity.Room, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT r.id, r.name, r.building_id, b.name, b.address
-		 FROM rooms r
-		 JOIN buildings b ON b.id = r.building_id
-		 ORDER BY b.name, r.name ASC`,
-	)
+	rows, err := r.queries.ListRooms(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("RoomRepo.List: %w", err)
 	}
-	defer rows.Close()
-
-	rooms := make([]*entity.Room, 0)
-	for rows.Next() {
-		room := &entity.Room{Building: &entity.Building{}}
-		if err := rows.Scan(
-			&room.ID, &room.Name, &room.BuildingID,
-			&room.Building.Name, &room.Building.Address,
-		); err != nil {
-			return nil, fmt.Errorf("RoomRepo.List scan: %w", err)
-		}
-		room.Building.ID = room.BuildingID
-		rooms = append(rooms, room)
+	rooms := make([]*entity.Room, len(rows))
+	for i, row := range rows {
+		rooms[i] = mapRoomFromList(row)
 	}
-	return rooms, rows.Err()
+	return rooms, nil
 }
 
-func (r *RoomRepo) ListByBuilding(
-	ctx context.Context,
-	buildingID uint64,
-) ([]*entity.Room, error) {
-	rows, err := r.pool.Query(ctx,
-		`SELECT r.id, r.name, r.building_id, b.name, b.address
-		 FROM rooms r
-		 JOIN buildings b ON b.id = r.building_id
-		 WHERE r.building_id = $1
-		 ORDER BY r.name ASC`,
-		buildingID,
-	)
+func (r *RoomRepo) ListByBuilding(ctx context.Context, buildingID uint64) ([]*entity.Room, error) {
+	rows, err := r.queries.ListRoomsByBuilding(ctx, int64(buildingID))
 	if err != nil {
 		return nil, fmt.Errorf("RoomRepo.ListByBuilding: %w", err)
 	}
-	defer rows.Close()
-
-	rooms := make([]*entity.Room, 0)
-	for rows.Next() {
-		room := &entity.Room{Building: &entity.Building{}}
-		if err := rows.Scan(
-			&room.ID, &room.Name, &room.BuildingID,
-			&room.Building.Name, &room.Building.Address,
-		); err != nil {
-			return nil, fmt.Errorf("RoomRepo.ListByBuilding scan: %w", err)
-		}
-		room.Building.ID = room.BuildingID
-		rooms = append(rooms, room)
+	rooms := make([]*entity.Room, len(rows))
+	for i, row := range rows {
+		rooms[i] = mapRoomFromListByBuilding(row)
 	}
-	return rooms, rows.Err()
+	return rooms, nil
 }
 
 func (r *RoomRepo) Update(ctx context.Context, room *entity.Room) error {
-	result, err := r.pool.Exec(ctx,
-		`UPDATE rooms SET name = $1, building_id = $2 WHERE id = $3`,
-		room.Name, room.BuildingID, room.ID,
-	)
+	err := r.queries.UpdateRoom(ctx, db.UpdateRoomParams{
+		Name:       room.Name,
+		BuildingID: int64(room.BuildingID),
+		ID:         int64(room.ID),
+	})
 	if err != nil {
 		return fmt.Errorf("RoomRepo.Update: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return logger.ErrNotFound
 	}
 	return nil
 }
 
 func (r *RoomRepo) Delete(ctx context.Context, id uint64) error {
-	result, err := r.pool.Exec(ctx,
-		`DELETE FROM rooms WHERE id = $1`, id,
-	)
-	if err != nil {
+	if err := r.queries.DeleteRoom(ctx, int64(id)); err != nil {
 		return fmt.Errorf("RoomRepo.Delete: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return logger.ErrNotFound
 	}
 	return nil
 }
+
+// ── mapping ───────────────────────────────────────────────────────────────────
+// sqlc generates a distinct row type per query even when columns are identical.
+// Three small mappers avoid duplicating the field mapping logic.
+
+func mapRoomFromGetByID(row db.GetRoomByIDRow) *entity.Room {
+	return &entity.Room{
+		ID:         uint64(row.ID),
+		Name:       row.Name,
+		BuildingID: uint64(row.BuildingID),
+		Building: &entity.Building{
+			ID:      uint64(row.BuildingID),
+			Name:    row.BuildingName,
+			Address: row.BuildingAddress,
+		},
+	}
+}
+
+func mapRoomFromList(row db.ListRoomsRow) *entity.Room {
+	return &entity.Room{
+		ID:         uint64(row.ID),
+		Name:       row.Name,
+		BuildingID: uint64(row.BuildingID),
+		Building: &entity.Building{
+			ID:      uint64(row.BuildingID),
+			Name:    row.BuildingName,
+			Address: row.BuildingAddress,
+		},
+	}
+}
+
+func mapRoomFromListByBuilding(row db.ListRoomsByBuildingRow) *entity.Room {
+	return &entity.Room{
+		ID:         uint64(row.ID),
+		Name:       row.Name,
+		BuildingID: uint64(row.BuildingID),
+		Building: &entity.Building{
+			ID:      uint64(row.BuildingID),
+			Name:    row.BuildingName,
+			Address: row.BuildingAddress,
+		},
+	}
+}
+

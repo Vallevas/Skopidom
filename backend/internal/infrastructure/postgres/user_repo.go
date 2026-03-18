@@ -3,159 +3,111 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
 	"github.com/Vallevas/Skopidom/internal/domain/entity"
+	"github.com/Vallevas/Skopidom/internal/infrastructure/postgres/db"
 	"github.com/Vallevas/Skopidom/pkg/logger"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 )
 
-// UserRepo implements repository.UserRepository using PostgreSQL.
+// UserRepo implements repository.UserRepository using sqlc-generated queries.
 type UserRepo struct {
-	pool *pgxpool.Pool
+	queries *db.Queries
 }
 
 // NewUserRepo constructs a UserRepo backed by the given connection pool.
 func NewUserRepo(pool *pgxpool.Pool) *UserRepo {
-	return &UserRepo{pool: pool}
+	return &UserRepo{queries: db.New(stdlib.OpenDBFromPool(pool))}
 }
 
 // Create inserts a new user and populates the generated ID and timestamps.
 func (r *UserRepo) Create(ctx context.Context, user *entity.User) error {
-	query := `
-		INSERT INTO users (full_name, email, password_hash, role)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, created_at, updated_at`
-
-	err := r.pool.QueryRow(ctx, query,
-		user.FullName,
-		user.Email,
-		user.PasswordHash,
-		user.Role,
-	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
-
+	row, err := r.queries.CreateUser(ctx, db.CreateUserParams{
+		FullName:     user.FullName,
+		Email:        user.Email,
+		PasswordHash: user.PasswordHash,
+		Role:         string(user.Role),
+	})
 	if err != nil {
 		return fmt.Errorf("UserRepo.Create: %w", err)
 	}
+
+	user.ID = uint64(row.ID)
+	user.CreatedAt = row.CreatedAt
+	user.UpdatedAt = row.UpdatedAt
 	return nil
 }
 
 // GetByID returns the user matching the given ID or ErrNotFound.
 func (r *UserRepo) GetByID(ctx context.Context, id uint64) (*entity.User, error) {
-	query := `
-		SELECT id, full_name, email, password_hash, role, created_at, updated_at
-		FROM users
-		WHERE id = $1`
-
-	user := &entity.User{}
-	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&user.ID, &user.FullName, &user.Email,
-		&user.PasswordHash, &user.Role,
-		&user.CreatedAt, &user.UpdatedAt,
-	)
-	if errors.Is(err, pgx.ErrNoRows) {
+	row, err := r.queries.GetUserByID(ctx, int64(id))
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, logger.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("UserRepo.GetByID: %w", err)
 	}
-	return user, nil
+	return mapUser(row), nil
 }
 
 // GetByEmail returns the user matching the given email or ErrNotFound.
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
-	query := `
-		SELECT id, full_name, email, password_hash, role, created_at, updated_at
-		FROM users
-		WHERE email = $1`
-
-	user := &entity.User{}
-	err := r.pool.QueryRow(ctx, query, email).Scan(
-		&user.ID, &user.FullName, &user.Email,
-		&user.PasswordHash, &user.Role,
-		&user.CreatedAt, &user.UpdatedAt,
-	)
-	if errors.Is(err, pgx.ErrNoRows) {
+	row, err := r.queries.GetUserByEmail(ctx, email)
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, logger.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("UserRepo.GetByEmail: %w", err)
 	}
-	return user, nil
+	return mapUser(row), nil
 }
 
 // List returns all registered users ordered by creation date.
 func (r *UserRepo) List(ctx context.Context) ([]*entity.User, error) {
-	query := `
-		SELECT id, full_name, email, password_hash, role, created_at, updated_at
-		FROM users
-		ORDER BY created_at ASC`
-
-	rows, err := r.pool.Query(ctx, query)
+	rows, err := r.queries.ListUsers(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("UserRepo.List: %w", err)
 	}
-	defer rows.Close()
 
-	users := make([]*entity.User, 0)
-	for rows.Next() {
-		user := &entity.User{}
-		if err := rows.Scan(
-			&user.ID, &user.FullName, &user.Email,
-			&user.PasswordHash, &user.Role,
-			&user.CreatedAt, &user.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("UserRepo.List scan: %w", err)
-		}
-		users = append(users, user)
+	users := make([]*entity.User, len(rows))
+	for i, row := range rows {
+		users[i] = mapUser(row)
 	}
-	return users, rows.Err()
+	return users, nil
 }
 
 // Update persists changes to FullName and Role fields.
 func (r *UserRepo) Update(ctx context.Context, user *entity.User) error {
-	query := `
-		UPDATE users
-		SET full_name = $1, role = $2, updated_at = NOW()
-		WHERE id = $3
-		RETURNING updated_at`
-
-	err := r.pool.QueryRow(ctx, query,
-		user.FullName,
-		user.Role,
-		user.ID,
-	).Scan(&user.UpdatedAt)
-
-	if errors.Is(err, pgx.ErrNoRows) {
+	updatedAt, err := r.queries.UpdateUser(ctx, db.UpdateUserParams{
+		FullName: user.FullName,
+		Role:     string(user.Role),
+		ID:       int64(user.ID),
+	})
+	if errors.Is(err, sql.ErrNoRows) {
 		return logger.ErrNotFound
 	}
 	if err != nil {
 		return fmt.Errorf("UserRepo.Update: %w", err)
 	}
+	user.UpdatedAt = updatedAt
 	return nil
 }
 
 // Delete permanently removes a user record from the database.
 func (r *UserRepo) Delete(ctx context.Context, id uint64) error {
-	result, err := r.pool.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
-	if err != nil {
+	if err := r.queries.DeleteUser(ctx, int64(id)); err != nil {
 		return fmt.Errorf("UserRepo.Delete: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return logger.ErrNotFound
 	}
 	return nil
 }
 
 // EmailExists reports whether the given email address is already registered.
 func (r *UserRepo) EmailExists(ctx context.Context, email string) (bool, error) {
-	var exists bool
-	err := r.pool.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)`,
-		email,
-	).Scan(&exists)
+	exists, err := r.queries.EmailExists(ctx, email)
 	if err != nil {
 		return false, fmt.Errorf("UserRepo.EmailExists: %w", err)
 	}
@@ -164,13 +116,26 @@ func (r *UserRepo) EmailExists(ctx context.Context, email string) (bool, error) 
 
 // CountByRole returns the number of users assigned the given role.
 func (r *UserRepo) CountByRole(ctx context.Context, role entity.UserRole) (int, error) {
-	var count int
-	err := r.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM users WHERE role = $1`, role,
-	).Scan(&count)
+	count, err := r.queries.CountUsersByRole(ctx, string(role))
 	if err != nil {
 		return 0, fmt.Errorf("UserRepo.CountByRole: %w", err)
 	}
-	return count, nil
+	return int(count), nil
+}
+
+// ── mapping ───────────────────────────────────────────────────────────────────
+
+// mapUser converts a sqlc-generated db.User to a domain entity.
+// GetUserByID, GetUserByEmail and ListUsers all return db.User — one mapper handles all.
+func mapUser(row db.User) *entity.User {
+	return &entity.User{
+		ID:           uint64(row.ID),
+		FullName:     row.FullName,
+		Email:        row.Email,
+		PasswordHash: row.PasswordHash,
+		Role:         entity.UserRole(row.Role),
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
+	}
 }
 
