@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -41,14 +42,36 @@ func NewLocalStorage(baseDir, baseURL string) (*LocalStorage, error) {
 }
 
 // Save writes the uploaded file to disk under a timestamped unique filename.
+// Two-layer validation is applied:
+//  1. File extension must be in the allowed list.
+//  2. Actual content type is detected via magic bytes — a PHP script renamed
+//     to .jpg is rejected even though the extension is valid.
 func (s *LocalStorage) Save(
 	_ context.Context,
 	file multipart.File,
 	header *multipart.FileHeader,
 ) (string, error) {
-	ext := filepath.Ext(header.Filename)
-	if !isAllowedExtension(ext) {
-		return "", fmt.Errorf("storage: file type %q not allowed", ext)
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if !allowedExtensions[ext] {
+		return "", fmt.Errorf("storage: file extension %q not allowed", ext)
+	}
+
+	// Read the first 512 bytes — http.DetectContentType inspects magic bytes,
+	// not the filename, so it catches renamed malicious files.
+	headerBuf := make([]byte, 512)
+	bytesRead, err := file.Read(headerBuf)
+	if err != nil && err != io.EOF {
+		return "", fmt.Errorf("storage: read file header: %w", err)
+	}
+
+	contentType := http.DetectContentType(headerBuf[:bytesRead])
+	if !allowedContentTypes[contentType] {
+		return "", fmt.Errorf("storage: content type %q not allowed", contentType)
+	}
+
+	// Rewind to the beginning before copying the full file to disk.
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return "", fmt.Errorf("storage: rewind file: %w", err)
 	}
 
 	// Build a collision-resistant filename using nanosecond timestamp.
@@ -91,7 +114,7 @@ func (s *LocalStorage) Delete(_ context.Context, urlPath string) error {
 	return nil
 }
 
-// allowedExtensions is the set of image extensions the system accepts.
+// allowedExtensions is the whitelist of accepted image file extensions.
 var allowedExtensions = map[string]bool{
 	".jpg":  true,
 	".jpeg": true,
@@ -99,7 +122,12 @@ var allowedExtensions = map[string]bool{
 	".webp": true,
 }
 
-// isAllowedExtension reports whether the extension is an accepted image format.
-func isAllowedExtension(ext string) bool {
-	return allowedExtensions[strings.ToLower(ext)]
+// allowedContentTypes is the whitelist of MIME types detected via magic bytes.
+// Note: http.DetectContentType does not distinguish .jpeg from .jpg —
+// both return "image/jpeg". WebP requires Go 1.20+.
+var allowedContentTypes = map[string]bool{
+	"image/jpeg": true,
+	"image/png":  true,
+	"image/webp": true,
 }
+

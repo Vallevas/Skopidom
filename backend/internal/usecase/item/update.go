@@ -14,7 +14,7 @@ import (
 func (uc *itemUseCase) Update(ctx context.Context, input UpdateInput) (*entity.Item, error) {
 	if input.ItemID == 0 || input.ActorID == 0 {
 		return nil, fmt.Errorf("item_id and actor_id are required: %w",
-			apperrors.ErrInvalidInput)
+			logger.ErrInvalidInput)
 	}
 
 	item, err := uc.items.GetByID(ctx, input.ItemID)
@@ -24,7 +24,7 @@ func (uc *itemUseCase) Update(ctx context.Context, input UpdateInput) (*entity.I
 
 	// Guard: disposed items must not be edited.
 	if !item.IsMutable() {
-		return nil, fmt.Errorf("item %d: %w", input.ItemID, apperrors.ErrDisposed)
+		return nil, fmt.Errorf("item %d: %w", input.ItemID, logger.ErrDisposed)
 	}
 
 	item.Description = input.Description
@@ -47,7 +47,7 @@ func (uc *itemUseCase) Dispose(ctx context.Context, itemID uint64, actorID uint6
 	}
 
 	if !item.IsActive() {
-		return fmt.Errorf("item %d: %w", itemID, apperrors.ErrDisposed)
+		return fmt.Errorf("item %d: %w", itemID, logger.ErrDisposed)
 	}
 
 	item.Dispose(actorID)
@@ -76,7 +76,7 @@ func (uc *itemUseCase) GetByBarcode(
 	barcode string,
 ) (*entity.Item, error) {
 	if barcode == "" {
-		return nil, fmt.Errorf("barcode is required: %w", apperrors.ErrInvalidInput)
+		return nil, fmt.Errorf("barcode is required: %w", logger.ErrInvalidInput)
 	}
 	item, err := uc.items.GetByBarcode(ctx, barcode)
 	if err != nil {

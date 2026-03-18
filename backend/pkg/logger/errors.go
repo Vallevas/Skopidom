@@ -1,5 +1,5 @@
-// Package apperrors defines sentinel errors used across all application layers.
-package apperrors
+// Package logger defines sentinel errors used across all application layers.
+package logger
 
 import "errors"
 

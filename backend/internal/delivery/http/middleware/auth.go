@@ -49,7 +49,7 @@ func Auth(secret string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenString := extractBearerToken(r)
 			if tokenString == "" {
-				writeError(w, http.StatusUnauthorized, apperrors.ErrUnauthorized)
+				writeError(w, http.StatusUnauthorized, logger.ErrUnauthorized)
 				return
 			}
 
@@ -59,7 +59,7 @@ func Auth(secret string) func(http.Handler) http.Handler {
 				func(_ *jwt.Token) (any, error) { return []byte(secret), nil },
 			)
 			if err != nil || !token.Valid {
-				writeError(w, http.StatusUnauthorized, apperrors.ErrUnauthorized)
+				writeError(w, http.StatusUnauthorized, logger.ErrUnauthorized)
 				return
 			}
 
@@ -76,7 +76,7 @@ func RequireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		role, _ := r.Context().Value(ContextKeyUserRole).(entity.UserRole)
 		if role != entity.RoleAdmin {
-			writeError(w, http.StatusForbidden, apperrors.ErrForbidden)
+			writeError(w, http.StatusForbidden, logger.ErrForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)

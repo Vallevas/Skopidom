@@ -25,6 +25,10 @@ func main() {
 		log.Fatalf("config: %v", err)
 	}
 
+	if cfg.Debug {
+		log.Println("running in DEBUG mode — verbose errors enabled")
+	}
+
 	// ── Database ───────────────────────────────────────────────────────────
 	ctx := context.Background()
 	pool, err := postgres.NewPool(ctx, cfg.Postgres.DSN)
@@ -69,9 +73,11 @@ func main() {
 			Buildings:  buildingRepo,
 			Rooms:      roomRepo,
 		},
-		JWTSecret: cfg.JWT.Secret,
-		JWTTTL:    cfg.JWT.TTL,
-		StaticDir: cfg.Storage.Dir,
+		JWTSecret:      cfg.JWT.Secret,
+		JWTTTL:         cfg.JWT.TTL,
+		StaticDir:      cfg.Storage.Dir,
+		DevMode:        cfg.IsDevelopment(),
+		AllowedOrigins: cfg.Server.AllowedOrigins,
 	})
 
 	server := &http.Server{
@@ -103,3 +109,4 @@ func main() {
 	}
 	log.Println("server stopped")
 }
+

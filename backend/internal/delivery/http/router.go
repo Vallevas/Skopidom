@@ -19,14 +19,22 @@ import (
 
 // RouterConfig holds all dependencies required to build the HTTP router.
 type RouterConfig struct {
-	ItemUC    itemUC.UseCase
-	UserUC    userUC.UseCase
-	Repos     RepoSet
-	Storage   storage.FileStorage
+	ItemUC  itemUC.UseCase
+	UserUC  userUC.UseCase
+	Repos   RepoSet
+	Storage storage.FileStorage
+
 	JWTSecret string
 	JWTTTL    time.Duration
+
 	// StaticDir is the filesystem directory served at /static/.
 	StaticDir string
+
+	// DevMode enables verbose error responses (detail field in JSON).
+	DevMode bool
+	// AllowedOrigins is passed directly to the CORS middleware.
+	// Use []string{"*"} for development and specific domains for production.
+	AllowedOrigins []string
 }
 
 // RepoSet groups lookup repositories needed to construct simple use cases.
@@ -38,6 +46,9 @@ type RepoSet struct {
 
 // NewRouter constructs and returns a fully-wired chi.Router.
 func NewRouter(cfg RouterConfig) http.Handler {
+	// Initialise error verbosity for all handlers once at startup.
+	handler.InitErrorMode(cfg.DevMode)
+
 	r := chi.NewRouter()
 
 	// Global middleware stack.
@@ -45,7 +56,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(chiMiddleware.RequestID)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: cfg.AllowedOrigins,
 		AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Authorization", "Content-Type"},
 	}))
@@ -134,8 +145,6 @@ func NewRouter(cfg RouterConfig) http.Handler {
 }
 
 // newLoginHandler returns an http.HandlerFunc for POST /api/v1/auth/login.
-// Defined here (not in the handler package) to call middleware.GenerateToken
-// directly and avoid a circular import between handler and middleware packages.
 func newLoginHandler(
 	uc userUC.UseCase,
 	secret string,
@@ -155,7 +164,6 @@ func newLoginHandler(
 
 		user, err := uc.Login(r.Context(), req.Email, req.Password)
 		if err != nil {
-			// Return a generic message to avoid leaking whether the account exists.
 			routerJSONError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
@@ -181,3 +189,4 @@ func routerJSONError(w http.ResponseWriter, status int, msg string) {
 	w.WriteHeader(status)
 	_, _ = w.Write([]byte(`{"error":"` + msg + `"}`))
 }
+

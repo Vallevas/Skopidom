@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Vallevas/Skopidom/internal/delivery/http/middleware"
 	"github.com/Vallevas/Skopidom/internal/domain/entity"
 	userUC "github.com/Vallevas/Skopidom/internal/usecase/user"
-	"github.com/Vallevas/Skopidom/pkg/logger"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -98,14 +98,12 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := userUC.RegisterInput{
+	user, err := h.uc.Register(r.Context(), userUC.RegisterInput{
 		FullName: req.FullName,
 		Email:    req.Email,
 		Password: req.Password,
 		Role:     req.Role,
-	}
-
-	user, err := h.uc.Register(r.Context(), input)
+	})
 	if err != nil {
 		handleError(w, err)
 		return
@@ -156,13 +154,12 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := userUC.UpdateInput{
+	user, err := h.uc.Update(r.Context(), userUC.UpdateInput{
 		UserID:   id,
+		ActorID:  middleware.UserIDFromCtx(r.Context()),
 		FullName: req.FullName,
 		Role:     req.Role,
-	}
-
-	user, err := h.uc.Update(r.Context(), input)
+	})
 	if err != nil {
 		handleError(w, err)
 		return
@@ -180,7 +177,9 @@ func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.uc.Delete(r.Context(), id); err != nil {
+	actorID := middleware.UserIDFromCtx(r.Context())
+
+	if err := h.uc.Delete(r.Context(), id, actorID); err != nil {
 		handleError(w, err)
 		return
 	}
@@ -205,17 +204,9 @@ type lookupUseCase interface {
 
 // generateJWT creates a signed JWT for the given user using the given config.
 func generateJWT(user *entity.User, cfg jwtConfig) (string, error) {
-	// Import the middleware package's GenerateToken function via an alias
-	// to avoid circular imports — actual call is wired in router.go.
-	// This placeholder is replaced by the router when constructing handlers.
 	_ = user
 	_ = cfg
 	return "", fmt.Errorf("generateJWT: not wired — use middleware.GenerateToken")
-}
-
-// wrapInvalidInput wraps a generic decode error as ErrInvalidInput.
-func wrapInvalidInput(err error) error {
-	return fmt.Errorf("%s: %w", err.Error(), apperrors.ErrInvalidInput)
 }
 
 // urlID is a helper used by handlers that don't use chi directly.

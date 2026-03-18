@@ -295,7 +295,7 @@ func NewSimpleCategoryUC(repo repository.CategoryRepository) *SimpleCategoryUC {
 
 func (uc *SimpleCategoryUC) Create(ctx context.Context, name string) (*entity.Category, error) {
 	if name == "" {
-		return nil, fmt.Errorf("name is required: %w", apperrors.ErrInvalidInput)
+		return nil, fmt.Errorf("name is required: %w", logger.ErrInvalidInput)
 	}
 	cat := &entity.Category{Name: name}
 	if err := uc.repo.Create(ctx, cat); err != nil {
@@ -310,7 +310,7 @@ func (uc *SimpleCategoryUC) List(ctx context.Context) ([]*entity.Category, error
 
 func (uc *SimpleCategoryUC) Update(ctx context.Context, id uint64, name string) (*entity.Category, error) {
 	if name == "" {
-		return nil, fmt.Errorf("name is required: %w", apperrors.ErrInvalidInput)
+		return nil, fmt.Errorf("name is required: %w", logger.ErrInvalidInput)
 	}
 	cat := &entity.Category{ID: id, Name: name}
 	if err := uc.repo.Update(ctx, cat); err != nil {
@@ -335,7 +335,7 @@ func NewSimpleBuildingUC(repo repository.BuildingRepository) *SimpleBuildingUC {
 
 func (uc *SimpleBuildingUC) Create(ctx context.Context, name, address string) (*entity.Building, error) {
 	if name == "" {
-		return nil, fmt.Errorf("name is required: %w", apperrors.ErrInvalidInput)
+		return nil, fmt.Errorf("name is required: %w", logger.ErrInvalidInput)
 	}
 	b := &entity.Building{Name: name, Address: address}
 	if err := uc.repo.Create(ctx, b); err != nil {
@@ -376,7 +376,7 @@ func NewSimpleRoomUC(
 
 func (uc *SimpleRoomUC) Create(ctx context.Context, name string, buildingID uint64) (*entity.Room, error) {
 	if name == "" || buildingID == 0 {
-		return nil, fmt.Errorf("name and building_id are required: %w", apperrors.ErrInvalidInput)
+		return nil, fmt.Errorf("name and building_id are required: %w", logger.ErrInvalidInput)
 	}
 	// Verify building exists.
 	if _, err := uc.buildings.GetByID(ctx, buildingID); err != nil {

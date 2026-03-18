@@ -21,7 +21,7 @@ func (uc *itemUseCase) Create(ctx context.Context, input CreateInput) (*entity.I
 		return nil, fmt.Errorf("item.Create barcodeExists: %w", err)
 	}
 	if exists {
-		return nil, fmt.Errorf("barcode %q: %w", input.Barcode, apperrors.ErrAlreadyExists)
+		return nil, fmt.Errorf("barcode %q: %w", input.Barcode, logger.ErrAlreadyExists)
 	}
 
 	// Verify that the referenced category exists.
@@ -57,19 +57,19 @@ func (uc *itemUseCase) Create(ctx context.Context, input CreateInput) (*entity.I
 // validateCreateInput checks that mandatory fields are present.
 func validateCreateInput(input CreateInput) error {
 	if input.Barcode == "" {
-		return fmt.Errorf("barcode is required: %w", apperrors.ErrInvalidInput)
+		return fmt.Errorf("barcode is required: %w", logger.ErrInvalidInput)
 	}
 	if input.Name == "" {
-		return fmt.Errorf("name is required: %w", apperrors.ErrInvalidInput)
+		return fmt.Errorf("name is required: %w", logger.ErrInvalidInput)
 	}
 	if input.CategoryID == 0 {
-		return fmt.Errorf("category_id is required: %w", apperrors.ErrInvalidInput)
+		return fmt.Errorf("category_id is required: %w", logger.ErrInvalidInput)
 	}
 	if input.RoomID == 0 {
-		return fmt.Errorf("room_id is required: %w", apperrors.ErrInvalidInput)
+		return fmt.Errorf("room_id is required: %w", logger.ErrInvalidInput)
 	}
 	if input.ActorID == 0 {
-		return fmt.Errorf("actor_id is required: %w", apperrors.ErrInvalidInput)
+		return fmt.Errorf("actor_id is required: %w", logger.ErrInvalidInput)
 	}
 	return nil
 }
