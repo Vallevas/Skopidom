@@ -102,3 +102,18 @@ type BuildingRepository interface {
 	Delete(ctx context.Context, id uint64) error
 }
 
+// AuditLogger defines the contract for recording item lifecycle events.
+//
+// Implementations decide where events are persisted — PostgreSQL only, or
+// PostgreSQL + blockchain. The use-case layer calls Log after every mutating
+// operation and is unaware of the underlying storage mechanism.
+type AuditLogger interface {
+	// Log records a single lifecycle event.
+	// Implementations must be non-blocking with respect to the primary
+	// operation — a logging failure should not fail the business action.
+	Log(ctx context.Context, event *entity.AuditEvent) error
+
+	// ListByItem returns all recorded events for the given item,
+	// ordered by creation time ascending.
+	ListByItem(ctx context.Context, itemID uint64) ([]*entity.AuditEvent, error)
+}

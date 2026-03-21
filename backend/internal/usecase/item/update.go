@@ -35,11 +35,19 @@ func (uc *itemUseCase) Update(ctx context.Context, input UpdateInput) (*entity.I
 		return nil, fmt.Errorf("item.Update persist: %w", err)
 	}
 
-	return uc.items.GetByID(ctx, item.ID)
+	// Re-fetch to get the updated state with all relations.
+	item, err = uc.items.GetByID(ctx, item.ID)
+	if err != nil {
+		return nil, fmt.Errorf("item.Update refetch: %w", err)
+	}
+
+	uc.logEvent(ctx, item, entity.ActionUpdated, input.ActorID)
+
+	return item, nil
 }
 
 // Dispose transitions an item to the disposed state.
-// Only admins should be able to call this — enforce at handler level.
+// Only admins should be able to call this — enforced at the handler level.
 func (uc *itemUseCase) Dispose(ctx context.Context, itemID uint64, actorID uint64) error {
 	item, err := uc.items.GetByID(ctx, itemID)
 	if err != nil {
@@ -55,14 +63,14 @@ func (uc *itemUseCase) Dispose(ctx context.Context, itemID uint64, actorID uint6
 	if err := uc.items.UpdateStatus(ctx, item); err != nil {
 		return fmt.Errorf("item.Dispose persist: %w", err)
 	}
+
+	uc.logEvent(ctx, item, entity.ActionDisposed, actorID)
+
 	return nil
 }
 
 // GetByID returns a single item with all relations populated.
-func (uc *itemUseCase) GetByID(
-	ctx context.Context,
-	id uint64,
-) (*entity.Item, error) {
+func (uc *itemUseCase) GetByID(ctx context.Context, id uint64) (*entity.Item, error) {
 	item, err := uc.items.GetByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("item.GetByID: %w", err)
@@ -96,3 +104,4 @@ func (uc *itemUseCase) List(
 	}
 	return items, nil
 }
+

@@ -85,19 +85,11 @@ logs-backend: ## Follow backend logs only
 
 .PHONY: psql
 psql: ## Open psql shell in the running postgres container
-	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME)
+	sudo docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME)
 
 .PHONY: create-admin
 create-admin: ## Insert a default admin user (password: password)
-	docker exec -i $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) <<'SQL'
-	INSERT INTO users (full_name, email, password_hash, role)
-	VALUES (
-	  'Администратор',
-	  'admin@university.ru',
-	  '$$2a$$12$$iB.8j9wRbmfza6qfuGTBn.l2dCkBc9ojVcIWnZi80nDM4bwO0RhEy',
-	  'admin'
-	) ON CONFLICT (email) DO NOTHING;
-	SQL
+	sudo docker exec -i $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "INSERT INTO users (full_name, email, password_hash, role) VALUES ('Администратор', 'admin@university.ru', '\$$2a\$$12\$$iB.8j9wRbmfza6qfuGTBn.l2dCkBc9ojVcIWnZi80nDM4bwO0RhEy', 'admin') ON CONFLICT (email) DO NOTHING;"
 
 # ── Help ──────────────────────────────────────────────────────────────────────
 

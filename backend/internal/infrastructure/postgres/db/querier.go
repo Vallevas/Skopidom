@@ -12,6 +12,8 @@ import (
 type Querier interface {
 	BarcodeExists(ctx context.Context, barcode string) (bool, error)
 	CountUsersByRole(ctx context.Context, role string) (int64, error)
+	// queries/audit.sql
+	CreateAuditEvent(ctx context.Context, arg CreateAuditEventParams) (CreateAuditEventRow, error)
 	// ── Buildings ─────────────────────────────────────────────────────────────────
 	CreateBuilding(ctx context.Context, arg CreateBuildingParams) (int64, error)
 	// queries/lookup.sql
@@ -38,12 +40,14 @@ type Querier interface {
 	GetRoomByID(ctx context.Context, id int64) (GetRoomByIDRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
+	ListAuditEventsByItem(ctx context.Context, itemID int64) ([]ListAuditEventsByItemRow, error)
 	ListBuildings(ctx context.Context) ([]Building, error)
 	ListCategories(ctx context.Context) ([]Category, error)
 	ListItems(ctx context.Context, arg ListItemsParams) ([]ItemDetail, error)
 	ListRooms(ctx context.Context) ([]ListRoomsRow, error)
 	ListRoomsByBuilding(ctx context.Context, buildingID int64) ([]ListRoomsByBuildingRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	UpdateAuditEventTxHash(ctx context.Context, arg UpdateAuditEventTxHashParams) error
 	UpdateBuilding(ctx context.Context, arg UpdateBuildingParams) error
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) error
 	UpdateItem(ctx context.Context, arg UpdateItemParams) error

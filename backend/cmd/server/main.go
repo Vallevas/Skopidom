@@ -43,12 +43,20 @@ func main() {
 	}
 	log.Println("migrations applied")
 
-	// ── Repositories ───────────────────────────────────────────────────────
+	// ── Repositories ───────────────────────────────────────────────────────────
 	itemRepo := postgres.NewItemRepo(pool)
 	userRepo := postgres.NewUserRepo(pool)
 	categoryRepo := postgres.NewCategoryRepo(pool)
 	buildingRepo := postgres.NewBuildingRepo(pool)
 	roomRepo := postgres.NewRoomRepo(pool)
+
+	// ── Audit Logger ───────────────────────────────────────────────────────────
+	//auditLogger :=  blockchain.NewBlockchainAuditLogger(...)
+	auditLogger := postgres.NewPostgresAuditLogger(pool)
+
+	// ── Use Cases ──────────────────────────────────────────────────────────────
+	itemUseCase := itemUC.New(itemRepo, categoryRepo, roomRepo, auditLogger)
+	userUseCase := userUC.New(userRepo)
 
 	// ── File Storage ───────────────────────────────────────────────────────
 	fileStorage, err := storage.NewLocalStorage(
@@ -58,10 +66,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("storage: %v", err)
 	}
-
-	// ── Use Cases ──────────────────────────────────────────────────────────
-	itemUseCase := itemUC.New(itemRepo, categoryRepo, roomRepo)
-	userUseCase := userUC.New(userRepo)
 
 	// ── HTTP Router ────────────────────────────────────────────────────────
 	router := deliveryHTTP.NewRouter(deliveryHTTP.RouterConfig{
@@ -109,4 +113,3 @@ func main() {
 	}
 	log.Println("server stopped")
 }
-

@@ -5,8 +5,19 @@
 package db
 
 import (
+	"encoding/json"
 	"time"
 )
+
+type AuditEvent struct {
+	ID        int64           `json:"id"`
+	ItemID    int64           `json:"item_id"`
+	ActorID   int64           `json:"actor_id"`
+	Action    string          `json:"action"`
+	Payload   json.RawMessage `json:"payload"`
+	TxHash    string          `json:"tx_hash"`
+	CreatedAt time.Time       `json:"created_at"`
+}
 
 type Building struct {
 	ID      int64  `json:"id"`

@@ -50,8 +50,15 @@ func (uc *itemUseCase) Create(ctx context.Context, input CreateInput) (*entity.I
 		return nil, fmt.Errorf("item.Create persist: %w", err)
 	}
 
-	// Return the full record with relations by re-fetching.
-	return uc.items.GetByID(ctx, item.ID)
+	// Re-fetch to get fully populated relations before logging.
+	item, err = uc.items.GetByID(ctx, item.ID)
+	if err != nil {
+		return nil, fmt.Errorf("item.Create refetch: %w", err)
+	}
+
+	uc.logEvent(ctx, item, entity.ActionCreated, input.ActorID)
+
+	return item, nil
 }
 
 // validateCreateInput checks that mandatory fields are present.
@@ -73,3 +80,4 @@ func validateCreateInput(input CreateInput) error {
 	}
 	return nil
 }
+

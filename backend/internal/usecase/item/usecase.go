@@ -3,6 +3,8 @@ package item
 
 import (
 	"context"
+	"encoding/json"
+	"log/slog"
 
 	"github.com/Vallevas/Skopidom/internal/domain/entity"
 	"github.com/Vallevas/Skopidom/internal/domain/repository"
@@ -27,6 +29,9 @@ type UseCase interface {
 
 	// List returns items matching the given filter.
 	List(ctx context.Context, filter repository.ItemFilter) ([]*entity.Item, error)
+
+	// ListAuditEvents returns the full audit history for the given item.
+	ListAuditEvents(ctx context.Context, itemID uint64) ([]*entity.AuditEvent, error)
 }
 
 // CreateInput holds the data required to register a new inventory item.
@@ -56,6 +61,7 @@ type itemUseCase struct {
 	items      repository.ItemRepository
 	categories repository.CategoryRepository
 	rooms      repository.RoomRepository
+	audit      repository.AuditLogger
 }
 
 // New constructs an itemUseCase with all required repository dependencies.
@@ -63,10 +69,44 @@ func New(
 	items repository.ItemRepository,
 	categories repository.CategoryRepository,
 	rooms repository.RoomRepository,
+	audit repository.AuditLogger,
 ) UseCase {
 	return &itemUseCase{
 		items:      items,
 		categories: categories,
 		rooms:      rooms,
+		audit:      audit,
 	}
 }
+
+// ListAuditEvents returns the full audit history for the given item.
+func (uc *itemUseCase) ListAuditEvents(
+	ctx context.Context,
+	itemID uint64,
+) ([]*entity.AuditEvent, error) {
+	return uc.audit.ListByItem(ctx, itemID)
+}
+
+// logEvent is a helper that builds and persists an AuditEvent.
+// It never fails the caller — errors are logged internally.
+func (uc *itemUseCase) logEvent(
+	ctx context.Context,
+	item *entity.Item,
+	action entity.AuditAction,
+	actorID uint64,
+) {
+	payload, err := json.Marshal(item)
+	if err != nil {
+		slog.Error("audit: failed to marshal item snapshot",
+			"item_id", item.ID, "err", err)
+		return
+	}
+
+	_ = uc.audit.Log(ctx, &entity.AuditEvent{
+		ItemID:  item.ID,
+		ActorID: actorID,
+		Action:  action,
+		Payload: string(payload),
+	})
+}
+

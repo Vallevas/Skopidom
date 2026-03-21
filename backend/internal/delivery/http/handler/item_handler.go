@@ -203,3 +203,21 @@ func buildItemFilter(r *http.Request) repository.ItemFilter {
 	}
 	return filter
 }
+
+// GetAuditLog godoc
+// GET /api/v1/items/{id}/audit
+func (h *ItemHandler) GetAuditLog(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+
+	events, err := h.uc.ListAuditEvents(r.Context(), id)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	respond(w, http.StatusOK, events)
+}

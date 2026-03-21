@@ -100,6 +100,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				r.Get("/barcode/{barcode}", itemH.GetByBarcode)
 				r.Route("/{id}", func(r chi.Router) {
 					r.Get("/", itemH.GetByID)
+					r.Get("/audit", itemH.GetAuditLog)
 					r.Patch("/", itemH.Update)
 					r.Post("/photo", uploadH.UploadItemPhoto)
 					// Dispose requires admin role.
@@ -189,4 +190,3 @@ func routerJSONError(w http.ResponseWriter, status int, msg string) {
 	w.WriteHeader(status)
 	_, _ = w.Write([]byte(`{"error":"` + msg + `"}`))
 }
-
