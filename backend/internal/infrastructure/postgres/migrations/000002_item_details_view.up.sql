@@ -18,7 +18,6 @@ SELECT
     b.address           AS building_address,
 
     i.description,
-    i.photo_url,
     i.status,
     i.tx_hash,
 

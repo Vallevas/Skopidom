@@ -27,10 +27,10 @@ func (q *Queries) BarcodeExists(ctx context.Context, barcode string) (bool, erro
 const createItem = `-- name: CreateItem :one
 INSERT INTO items (
     barcode, name, category_id, room_id,
-    description, photo_url, status,
+    description, status,
     created_by, last_edited_by
 )
-VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, $7)
+VALUES ($1, $2, $3, $4, $5, 'active', $6, $6)
 RETURNING id, created_at, updated_at
 `
 
@@ -40,7 +40,6 @@ type CreateItemParams struct {
 	CategoryID  int64  `json:"category_id"`
 	RoomID      int64  `json:"room_id"`
 	Description string `json:"description"`
-	PhotoUrl    string `json:"photo_url"`
 	CreatedBy   int64  `json:"created_by"`
 }
 
@@ -57,7 +56,6 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (CreateI
 		arg.CategoryID,
 		arg.RoomID,
 		arg.Description,
-		arg.PhotoUrl,
 		arg.CreatedBy,
 	)
 	var i CreateItemRow
@@ -66,7 +64,7 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (CreateI
 }
 
 const getItemByBarcode = `-- name: GetItemByBarcode :one
-SELECT id, barcode, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, photo_url, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
+SELECT id, barcode, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
 WHERE barcode = $1
 `
 
@@ -85,7 +83,6 @@ func (q *Queries) GetItemByBarcode(ctx context.Context, barcode string) (ItemDet
 		&i.BuildingName,
 		&i.BuildingAddress,
 		&i.Description,
-		&i.PhotoUrl,
 		&i.Status,
 		&i.TxHash,
 		&i.CreatedAt,
@@ -108,7 +105,7 @@ func (q *Queries) GetItemByBarcode(ctx context.Context, barcode string) (ItemDet
 
 const getItemByID = `-- name: GetItemByID :one
 
-SELECT id, barcode, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, photo_url, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
+SELECT id, barcode, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
 WHERE id = $1
 `
 
@@ -130,7 +127,6 @@ func (q *Queries) GetItemByID(ctx context.Context, id int64) (ItemDetail, error)
 		&i.BuildingName,
 		&i.BuildingAddress,
 		&i.Description,
-		&i.PhotoUrl,
 		&i.Status,
 		&i.TxHash,
 		&i.CreatedAt,
@@ -152,7 +148,7 @@ func (q *Queries) GetItemByID(ctx context.Context, id int64) (ItemDetail, error)
 }
 
 const listItems = `-- name: ListItems :many
-SELECT id, barcode, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, photo_url, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
+SELECT id, barcode, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
 WHERE
     ($1::bigint IS NULL OR category_id = $1) AND
     ($2::bigint     IS NULL OR room_id     = $2)     AND
@@ -197,7 +193,6 @@ func (q *Queries) ListItems(ctx context.Context, arg ListItemsParams) ([]ItemDet
 			&i.BuildingName,
 			&i.BuildingAddress,
 			&i.Description,
-			&i.PhotoUrl,
 			&i.Status,
 			&i.TxHash,
 			&i.CreatedAt,
@@ -228,30 +223,43 @@ func (q *Queries) ListItems(ctx context.Context, arg ListItemsParams) ([]ItemDet
 	return items, nil
 }
 
+const moveItemToRoom = `-- name: MoveItemToRoom :exec
+UPDATE items
+SET
+    room_id        = $1,
+    last_edited_by = $2,
+    updated_at     = NOW()
+WHERE id = $3
+`
+
+type MoveItemToRoomParams struct {
+	RoomID       int64 `json:"room_id"`
+	LastEditedBy int64 `json:"last_edited_by"`
+	ID           int64 `json:"id"`
+}
+
+func (q *Queries) MoveItemToRoom(ctx context.Context, arg MoveItemToRoomParams) error {
+	_, err := q.db.ExecContext(ctx, moveItemToRoom, arg.RoomID, arg.LastEditedBy, arg.ID)
+	return err
+}
+
 const updateItem = `-- name: UpdateItem :exec
 UPDATE items
 SET
     description    = $1,
-    photo_url      = $2,
-    last_edited_by = $3,
+    last_edited_by = $2,
     updated_at     = NOW()
-WHERE id = $4
+WHERE id = $3
 `
 
 type UpdateItemParams struct {
 	Description  string `json:"description"`
-	PhotoUrl     string `json:"photo_url"`
 	LastEditedBy int64  `json:"last_edited_by"`
 	ID           int64  `json:"id"`
 }
 
 func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) error {
-	_, err := q.db.ExecContext(ctx, updateItem,
-		arg.Description,
-		arg.PhotoUrl,
-		arg.LastEditedBy,
-		arg.ID,
-	)
+	_, err := q.db.ExecContext(ctx, updateItem, arg.Description, arg.LastEditedBy, arg.ID)
 	return err
 }
 

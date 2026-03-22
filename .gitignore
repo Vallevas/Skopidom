@@ -16,6 +16,7 @@ profile.cov
 
 # Dependency directories
 # vendor/
+frontend/node_modules
 
 # Tests
 curl_tests/
@@ -24,6 +25,9 @@ skopidom_file_structure.txt
 # Go workspace file
 go.work
 go.work.sum
+
+# Dev storage
+backend/uploads/
 
 # env file
 .env

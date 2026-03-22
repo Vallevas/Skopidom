@@ -10,8 +10,12 @@ import (
 )
 
 type Querier interface {
+	// queries/photos.sql
+	AddItemPhoto(ctx context.Context, arg AddItemPhotoParams) (ItemPhoto, error)
 	BarcodeExists(ctx context.Context, barcode string) (bool, error)
 	CountUsersByRole(ctx context.Context, role string) (int64, error)
+	// queries/audit.sql
+	CreateAuditEvent(ctx context.Context, arg CreateAuditEventParams) (CreateAuditEventRow, error)
 	// ── Buildings ─────────────────────────────────────────────────────────────────
 	CreateBuilding(ctx context.Context, arg CreateBuildingParams) (int64, error)
 	// queries/lookup.sql
@@ -23,8 +27,10 @@ type Querier interface {
 	CreateRoom(ctx context.Context, arg CreateRoomParams) (int64, error)
 	// queries/users.sql
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	DeleteAllItemPhotos(ctx context.Context, itemID int64) error
 	DeleteBuilding(ctx context.Context, id int64) error
 	DeleteCategory(ctx context.Context, id int64) error
+	DeleteItemPhoto(ctx context.Context, arg DeleteItemPhotoParams) error
 	DeleteRoom(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id int64) error
 	EmailExists(ctx context.Context, email string) (bool, error)
@@ -38,12 +44,16 @@ type Querier interface {
 	GetRoomByID(ctx context.Context, id int64) (GetRoomByIDRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
+	ListAuditEventsByItem(ctx context.Context, itemID int64) ([]ListAuditEventsByItemRow, error)
 	ListBuildings(ctx context.Context) ([]Building, error)
 	ListCategories(ctx context.Context) ([]Category, error)
+	ListItemPhotos(ctx context.Context, itemID int64) ([]ItemPhoto, error)
 	ListItems(ctx context.Context, arg ListItemsParams) ([]ItemDetail, error)
 	ListRooms(ctx context.Context) ([]ListRoomsRow, error)
 	ListRoomsByBuilding(ctx context.Context, buildingID int64) ([]ListRoomsByBuildingRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	MoveItemToRoom(ctx context.Context, arg MoveItemToRoomParams) error
+	UpdateAuditEventTxHash(ctx context.Context, arg UpdateAuditEventTxHashParams) error
 	UpdateBuilding(ctx context.Context, arg UpdateBuildingParams) error
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) error
 	UpdateItem(ctx context.Context, arg UpdateItemParams) error
