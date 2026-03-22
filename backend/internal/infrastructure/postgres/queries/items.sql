@@ -23,20 +23,19 @@ ORDER BY created_at DESC;
 -- name: CreateItem :one
 INSERT INTO items (
     barcode, name, category_id, room_id,
-    description, photo_url, status,
+    description, status,
     created_by, last_edited_by
 )
-VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, $7)
+VALUES ($1, $2, $3, $4, $5, 'active', $6, $6)
 RETURNING id, created_at, updated_at;
 
 -- name: UpdateItem :exec
 UPDATE items
 SET
     description    = $1,
-    photo_url      = $2,
-    last_edited_by = $3,
+    last_edited_by = $2,
     updated_at     = NOW()
-WHERE id = $4;
+WHERE id = $3;
 
 -- name: UpdateItemStatus :exec
 UPDATE items
@@ -50,6 +49,14 @@ WHERE id = $3;
 UPDATE items
 SET tx_hash = $1
 WHERE id = $2;
+
+-- name: MoveItemToRoom :exec
+UPDATE items
+SET
+    room_id        = $1,
+    last_edited_by = $2,
+    updated_at     = NOW()
+WHERE id = $3;
 
 -- name: BarcodeExists :one
 SELECT EXISTS(

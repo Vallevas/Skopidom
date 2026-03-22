@@ -37,7 +37,6 @@ type Item struct {
 	CategoryID   int64     `json:"category_id"`
 	RoomID       int64     `json:"room_id"`
 	Description  string    `json:"description"`
-	PhotoUrl     string    `json:"photo_url"`
 	Status       string    `json:"status"`
 	TxHash       string    `json:"tx_hash"`
 	CreatedAt    time.Time `json:"created_at"`
@@ -58,7 +57,6 @@ type ItemDetail struct {
 	BuildingName     string    `json:"building_name"`
 	BuildingAddress  string    `json:"building_address"`
 	Description      string    `json:"description"`
-	PhotoUrl         string    `json:"photo_url"`
 	Status           string    `json:"status"`
 	TxHash           string    `json:"tx_hash"`
 	CreatedAt        time.Time `json:"created_at"`
@@ -75,6 +73,13 @@ type ItemDetail struct {
 	EditorRole       string    `json:"editor_role"`
 	EditorCreatedAt  time.Time `json:"editor_created_at"`
 	EditorUpdatedAt  time.Time `json:"editor_updated_at"`
+}
+
+type ItemPhoto struct {
+	ID        int64     `json:"id"`
+	ItemID    int64     `json:"item_id"`
+	Url       string    `json:"url"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Room struct {

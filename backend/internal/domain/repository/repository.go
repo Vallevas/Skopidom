@@ -9,7 +9,6 @@ import (
 )
 
 // ItemFilter holds optional parameters for filtering item list queries.
-// Nil pointer fields are ignored (not applied to the query).
 type ItemFilter struct {
 	CategoryID *uint64
 	RoomID     *uint64
@@ -20,56 +19,37 @@ type ItemFilter struct {
 
 // ItemRepository defines the persistence contract for inventory items.
 type ItemRepository interface {
-	// Create persists a new item and sets its generated ID and timestamps.
 	Create(ctx context.Context, item *entity.Item) error
-
-	// GetByID returns the item with the given ID or ErrNotFound.
 	GetByID(ctx context.Context, id uint64) (*entity.Item, error)
-
-	// GetByBarcode returns the item matching the barcode or ErrNotFound.
 	GetByBarcode(ctx context.Context, barcode string) (*entity.Item, error)
-
-	// List returns items matching the provided filter.
 	List(ctx context.Context, filter ItemFilter) ([]*entity.Item, error)
-
-	// Update persists changes to Description, PhotoURL, and UpdatedAt.
 	Update(ctx context.Context, item *entity.Item) error
-
-	// UpdateStatus persists a status change (e.g. disposed).
 	UpdateStatus(ctx context.Context, item *entity.Item) error
-
-	// UpdateTxHash stores the blockchain transaction hash for an item.
 	UpdateTxHash(ctx context.Context, id uint64, txHash string) error
-
-	// BarcodeExists reports whether a barcode is already registered.
 	BarcodeExists(ctx context.Context, barcode string) (bool, error)
+	// MoveToRoom changes the room of an item and records the actor.
+	MoveToRoom(ctx context.Context, itemID uint64, roomID uint64, actorID uint64) error
+}
+
+// PhotoRepository defines the persistence contract for item photos.
+type PhotoRepository interface {
+	// Add stores a new photo URL for an item and returns the created record.
+	Add(ctx context.Context, photo *entity.ItemPhoto) error
+	// ListByItem returns all photos for the given item in upload order.
+	ListByItem(ctx context.Context, itemID uint64) ([]*entity.ItemPhoto, error)
+	// Delete removes a single photo by its ID, verifying it belongs to itemID.
+	Delete(ctx context.Context, photoID uint64, itemID uint64) error
 }
 
 // UserRepository defines the persistence contract for system users.
 type UserRepository interface {
-	// Create persists a new user and sets its generated ID and timestamps.
 	Create(ctx context.Context, user *entity.User) error
-
-	// GetByID returns the user with the given ID or ErrNotFound.
 	GetByID(ctx context.Context, id uint64) (*entity.User, error)
-
-	// GetByEmail returns the user with the given email or ErrNotFound.
 	GetByEmail(ctx context.Context, email string) (*entity.User, error)
-
-	// List returns all users.
 	List(ctx context.Context) ([]*entity.User, error)
-
-	// Update persists changes to FullName, Role, and UpdatedAt.
 	Update(ctx context.Context, user *entity.User) error
-
-	// Delete permanently removes a user record.
 	Delete(ctx context.Context, id uint64) error
-
-	// EmailExists reports whether an email address is already registered.
 	EmailExists(ctx context.Context, email string) (bool, error)
-
-	// CountByRole returns the number of users assigned the given role.
-	// Used to prevent deleting or downgrading the last admin account.
 	CountByRole(ctx context.Context, role entity.UserRole) (int, error)
 }
 
@@ -86,7 +66,6 @@ type CategoryRepository interface {
 type RoomRepository interface {
 	Create(ctx context.Context, room *entity.Room) error
 	GetByID(ctx context.Context, id uint64) (*entity.Room, error)
-	// ListByBuilding returns all rooms belonging to the given building.
 	ListByBuilding(ctx context.Context, buildingID uint64) ([]*entity.Room, error)
 	List(ctx context.Context) ([]*entity.Room, error)
 	Update(ctx context.Context, room *entity.Room) error
@@ -103,17 +82,7 @@ type BuildingRepository interface {
 }
 
 // AuditLogger defines the contract for recording item lifecycle events.
-//
-// Implementations decide where events are persisted — PostgreSQL only, or
-// PostgreSQL + blockchain. The use-case layer calls Log after every mutating
-// operation and is unaware of the underlying storage mechanism.
 type AuditLogger interface {
-	// Log records a single lifecycle event.
-	// Implementations must be non-blocking with respect to the primary
-	// operation — a logging failure should not fail the business action.
 	Log(ctx context.Context, event *entity.AuditEvent) error
-
-	// ListByItem returns all recorded events for the given item,
-	// ordered by creation time ascending.
 	ListByItem(ctx context.Context, itemID uint64) ([]*entity.AuditEvent, error)
 }

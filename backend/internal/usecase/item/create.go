@@ -15,7 +15,6 @@ func (uc *itemUseCase) Create(ctx context.Context, input CreateInput) (*entity.I
 		return nil, err
 	}
 
-	// Ensure the barcode is not already registered.
 	exists, err := uc.items.BarcodeExists(ctx, input.Barcode)
 	if err != nil {
 		return nil, fmt.Errorf("item.Create barcodeExists: %w", err)
@@ -24,12 +23,10 @@ func (uc *itemUseCase) Create(ctx context.Context, input CreateInput) (*entity.I
 		return nil, fmt.Errorf("barcode %q: %w", input.Barcode, logger.ErrAlreadyExists)
 	}
 
-	// Verify that the referenced category exists.
 	if _, err := uc.categories.GetByID(ctx, input.CategoryID); err != nil {
 		return nil, fmt.Errorf("item.Create category: %w", err)
 	}
 
-	// Verify that the referenced room exists.
 	if _, err := uc.rooms.GetByID(ctx, input.RoomID); err != nil {
 		return nil, fmt.Errorf("item.Create room: %w", err)
 	}
@@ -40,7 +37,6 @@ func (uc *itemUseCase) Create(ctx context.Context, input CreateInput) (*entity.I
 		CategoryID:   input.CategoryID,
 		RoomID:       input.RoomID,
 		Description:  input.Description,
-		PhotoURL:     input.PhotoURL,
 		Status:       entity.StatusActive,
 		CreatedBy:    input.ActorID,
 		LastEditedBy: input.ActorID,
@@ -50,14 +46,12 @@ func (uc *itemUseCase) Create(ctx context.Context, input CreateInput) (*entity.I
 		return nil, fmt.Errorf("item.Create persist: %w", err)
 	}
 
-	// Re-fetch to get fully populated relations before logging.
 	item, err = uc.items.GetByID(ctx, item.ID)
 	if err != nil {
 		return nil, fmt.Errorf("item.Create refetch: %w", err)
 	}
 
 	uc.logEvent(ctx, item, entity.ActionCreated, input.ActorID)
-
 	return item, nil
 }
 
@@ -80,4 +74,3 @@ func validateCreateInput(input CreateInput) error {
 	}
 	return nil
 }
-

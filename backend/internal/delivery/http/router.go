@@ -101,9 +101,11 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				r.Route("/{id}", func(r chi.Router) {
 					r.Get("/", itemH.GetByID)
 					r.Get("/audit", itemH.GetAuditLog)
+					r.Get("/photos", uploadH.ListItemPhotos)
 					r.Patch("/", itemH.Update)
-					r.Post("/photo", uploadH.UploadItemPhoto)
-					// Dispose requires admin role.
+					r.Patch("/room", itemH.MoveToRoom)
+					r.Post("/photos", uploadH.UploadItemPhoto)
+					r.Delete("/photos/{photo_id}", uploadH.DeleteItemPhoto)
 					r.With(middleware.RequireAdmin).Delete("/", itemH.Dispose)
 				})
 			})

@@ -43,19 +43,22 @@ func main() {
 	}
 	log.Println("migrations applied")
 
-	// ── Repositories ───────────────────────────────────────────────────────────
+	// ── Repositories ───────────────────────────────────────────────────────
 	itemRepo := postgres.NewItemRepo(pool)
 	userRepo := postgres.NewUserRepo(pool)
 	categoryRepo := postgres.NewCategoryRepo(pool)
 	buildingRepo := postgres.NewBuildingRepo(pool)
 	roomRepo := postgres.NewRoomRepo(pool)
 
-	// ── Audit Logger ───────────────────────────────────────────────────────────
+	// ── Photos ─────────────────────────────────────────────────────────────
+	photoRepo := postgres.NewPhotoRepo(pool)
+
+	// ── Audit Logger ───────────────────────────────────────────────────────
 	//auditLogger :=  blockchain.NewBlockchainAuditLogger(...)
 	auditLogger := postgres.NewPostgresAuditLogger(pool)
 
-	// ── Use Cases ──────────────────────────────────────────────────────────────
-	itemUseCase := itemUC.New(itemRepo, categoryRepo, roomRepo, auditLogger)
+	// ── Use Cases ──────────────────────────────────────────────────────────
+	itemUseCase := itemUC.New(itemRepo, categoryRepo, roomRepo, photoRepo, auditLogger)
 	userUseCase := userUC.New(userRepo)
 
 	// ── File Storage ───────────────────────────────────────────────────────

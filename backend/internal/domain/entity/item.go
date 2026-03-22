@@ -36,7 +36,7 @@ type Item struct {
 	Description string `json:"description"`
 
 	// PhotoURL points to the stored photo of the asset; mutable.
-	PhotoURL string `json:"photo_url,omitempty"`
+	Photos []*ItemPhoto `json:"photos,omitempty"`
 
 	Status ItemStatus `json:"status"`
 

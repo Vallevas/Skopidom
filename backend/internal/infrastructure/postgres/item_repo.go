@@ -35,7 +35,6 @@ func (r *ItemRepo) Create(ctx context.Context, item *entity.Item) error {
 		CategoryID:  int64(item.CategoryID),
 		RoomID:      int64(item.RoomID),
 		Description: item.Description,
-		PhotoUrl:    item.PhotoURL,
 		CreatedBy:   int64(item.CreatedBy),
 	})
 	if err != nil {
@@ -92,11 +91,10 @@ func (r *ItemRepo) List(ctx context.Context, filter repository.ItemFilter) ([]*e
 	return items, nil
 }
 
-// Update persists changes to Description, PhotoURL, and UpdatedAt.
+// Update persists changes to Description, and UpdatedAt.
 func (r *ItemRepo) Update(ctx context.Context, item *entity.Item) error {
 	err := r.queries.UpdateItem(ctx, db.UpdateItemParams{
 		Description:  item.Description,
-		PhotoUrl:     item.PhotoURL,
 		LastEditedBy: int64(item.LastEditedBy),
 		ID:           int64(item.ID),
 	})
@@ -140,6 +138,19 @@ func (r *ItemRepo) BarcodeExists(ctx context.Context, barcode string) (bool, err
 	return exists, nil
 }
 
+// MoveToRoom changes the room of an item.
+func (r *ItemRepo) MoveToRoom(ctx context.Context, itemID, roomID, actorID uint64) error {
+	err := r.queries.MoveItemToRoom(ctx, db.MoveItemToRoomParams{
+		RoomID:       int64(roomID),
+		LastEditedBy: int64(actorID),
+		ID:           int64(itemID),
+	})
+	if err != nil {
+		return fmt.Errorf("ItemRepo.MoveToRoom: %w", err)
+	}
+	return nil
+}
+
 // ── mapping ───────────────────────────────────────────────────────────────────
 
 // mapItemDetail converts a sqlc-generated ItemDetail row to a domain entity.
@@ -169,7 +180,6 @@ func mapItemDetail(row db.ItemDetail) *entity.Item {
 		},
 
 		Description: row.Description,
-		PhotoURL:    row.PhotoUrl,
 		Status:      entity.ItemStatus(row.Status),
 		TxHash:      row.TxHash,
 
@@ -223,4 +233,3 @@ func nullTime(v *time.Time) sql.NullTime {
 	}
 	return sql.NullTime{Time: *v, Valid: true}
 }
-

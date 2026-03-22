@@ -31,12 +31,14 @@ type createItemRequest struct {
 	CategoryID  uint64 `json:"category_id"`
 	RoomID      uint64 `json:"room_id"`
 	Description string `json:"description"`
-	PhotoURL    string `json:"photo_url"`
 }
 
 type updateItemRequest struct {
 	Description string `json:"description"`
-	PhotoURL    string `json:"photo_url"`
+}
+
+type moveToRoomRequest struct {
+	RoomID uint64 `json:"room_id"`
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
@@ -57,7 +59,6 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 		CategoryID:  req.CategoryID,
 		RoomID:      req.RoomID,
 		Description: req.Description,
-		PhotoURL:    req.PhotoURL,
 		ActorID:     actorID,
 	}
 
@@ -133,7 +134,6 @@ func (h *ItemHandler) Update(w http.ResponseWriter, r *http.Request) {
 	input := itemUC.UpdateInput{
 		ItemID:      id,
 		Description: req.Description,
-		PhotoURL:    req.PhotoURL,
 		ActorID:     actorID,
 	}
 
@@ -146,8 +146,51 @@ func (h *ItemHandler) Update(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusOK, item)
 }
 
+// MoveToRoom godoc
+// PATCH /api/v1/items/{id}/room
+func (h *ItemHandler) MoveToRoom(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+
+	var req moveToRoomRequest
+	if err := decodeJSON(r, &req); err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+
+	actorID := middleware.UserIDFromCtx(r.Context())
+	item, err := h.uc.MoveToRoom(r.Context(), id, req.RoomID, actorID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	respond(w, http.StatusOK, item)
+}
+
+// GetAuditLog godoc
+// GET /api/v1/items/{id}/audit
+func (h *ItemHandler) GetAuditLog(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+
+	events, err := h.uc.ListAuditEvents(r.Context(), id)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	respond(w, http.StatusOK, events)
+}
+
 // Dispose godoc
-// DELETE /api/v1/items/{id}  (admin only — enforced by router middleware)
+// DELETE /api/v1/items/{id}  (admin only)
 func (h *ItemHandler) Dispose(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
@@ -204,20 +247,3 @@ func buildItemFilter(r *http.Request) repository.ItemFilter {
 	return filter
 }
 
-// GetAuditLog godoc
-// GET /api/v1/items/{id}/audit
-func (h *ItemHandler) GetAuditLog(w http.ResponseWriter, r *http.Request) {
-	id, err := parseIDParam(r, "id")
-	if err != nil {
-		handleError(w, wrapInvalidInput(err))
-		return
-	}
-
-	events, err := h.uc.ListAuditEvents(r.Context(), id)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	respond(w, http.StatusOK, events)
-}
