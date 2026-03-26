@@ -29,6 +29,7 @@
     "all_buildings": "Все здания",
     "all_rooms": "Все комнаты",
     "status_active": "Активные",
+    "status_in_repair": "В ремонте",
     "status_disposed": "Списанные",
     "barcode": "Штрих-код",
     "name": "Название",
@@ -44,6 +45,7 @@
     "dispose": "Списать",
     "dispose_confirm": "Вы уверены? Это действие необратимо.",
     "disposed_badge": "Списан",
+    "in_repair_badge": "В ремонте",
     "empty": "Предметы не найдены",
     "upload_photo": "Добавить фото",
     "photo_uploaded": "Фото загружено",
@@ -96,7 +98,10 @@
     "action_created": "Добавлен",
     "action_updated": "Изменён",
     "action_disposed": "Списан",
+    "action_moved": "Перемещён",
     "by": "кем: {{name}}",
+    "moved_from": "из {{from_building}} — {{from_room}}",
+    "moved_to": "в {{to_building}} — {{to_room}}",
     "blockchain_hash": "Хэш транзакции"
   },
   "settings": {
@@ -104,6 +109,17 @@
     "language": "Язык",
     "lang_ru": "Русский",
     "lang_en": "English"
+  },
+  "errors": {
+    "resource_not_found": "Ресурс не найден",
+    "resource_already_exists": "Ресурс уже существует",
+    "item_disposed": "Предмет списан и не может быть изменён",
+    "insufficient_permissions": "Недостаточно прав",
+    "unauthorized": "Необходима авторизация",
+    "cannot_delete_own_account": "Нельзя удалить собственный аккаунт",
+    "cannot_delete_last_admin": "Нельзя удалить последнего администратора",
+    "cannot_downgrade_last_admin": "Нельзя понизить роль последнего администратора",
+    "unknown": "Произошла неизвестная ошибка"
   },
   "common": {
     "save": "Сохранить",

@@ -27,7 +27,7 @@ export interface Room {
   building?: Building
 }
 
-export type ItemStatus = 'active' | 'disposed'
+export type ItemStatus = 'active' | 'in_repair' | 'disposed'
 
 export interface ItemPhoto {
   id: number
@@ -56,7 +56,17 @@ export interface Item {
   photos?: ItemPhoto[]
 }
 
-export type AuditAction = 'created' | 'updated' | 'disposed'
+export type AuditAction = 'created' | 'updated' | 'disposed' | 'moved'
+
+// MovePayload is embedded in AuditEvent.payload when action === 'moved'.
+export interface MovePayload {
+  from_room_id: number
+  from_room_name: string
+  from_building_name: string
+  to_room_id: number
+  to_room_name: string
+  to_building_name: string
+}
 
 export interface AuditEvent {
   id: number

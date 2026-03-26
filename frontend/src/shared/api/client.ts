@@ -33,6 +33,20 @@ export class ApiClientError extends Error {
   }
 }
 
+// translateError maps backend English error messages to i18n translation keys.
+// Usage: t(translateError(err.message))
+export function translateError(message: string): string {
+  if (message.includes('resource not found'))            return 'errors.resource_not_found'
+  if (message.includes('resource already exists'))       return 'errors.resource_already_exists'
+  if (message.includes('disposed and cannot'))           return 'errors.item_disposed'
+  if (message.includes('insufficient permissions'))      return 'errors.insufficient_permissions'
+  if (message.includes('unauthorized'))                  return 'errors.unauthorized'
+  if (message.includes('cannot delete own account'))     return 'errors.cannot_delete_own_account'
+  if (message.includes('cannot delete the last admin'))  return 'errors.cannot_delete_last_admin'
+  if (message.includes('cannot downgrade the last admin')) return 'errors.cannot_downgrade_last_admin'
+  return 'errors.unknown'
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = tokenStorage.get()
   const response = await fetch(`/api/v1${path}`, {
@@ -77,7 +91,6 @@ export const itemsApi = {
   dispose: (id: number) => request<void>(`/items/${id}`, { method: 'DELETE' }),
   getAuditLog: (id: number) => request<AuditEvent[]>(`/items/${id}/audit`),
 
-  // Photos
   listPhotos: (id: number) => request<ItemPhoto[]>(`/items/${id}/photos`),
   uploadPhoto: (id: number, file: File) => {
     const form = new FormData()
@@ -121,7 +134,10 @@ export const buildingsApi = {
   create: (name: string, address: string) =>
     request<Building>('/buildings', { method: 'POST', body: JSON.stringify({ name, address }) }),
   update: (id: number, name: string, address: string) =>
-    request<Building>(`/buildings/${id}`, { method: 'PATCH', body: JSON.stringify({ name, address }) }),
+    request<Building>(`/buildings/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name, address }),
+    }),
   delete: (id: number) => request<void>(`/buildings/${id}`, { method: 'DELETE' }),
 }
 
@@ -131,8 +147,14 @@ export const roomsApi = {
     return request<Room[]>(`/rooms${qs}`)
   },
   create: (name: string, buildingId: number) =>
-    request<Room>('/rooms', { method: 'POST', body: JSON.stringify({ name, building_id: buildingId }) }),
+    request<Room>('/rooms', {
+      method: 'POST',
+      body: JSON.stringify({ name, building_id: buildingId }),
+    }),
   update: (id: number, name: string, buildingId: number) =>
-    request<Room>(`/rooms/${id}`, { method: 'PATCH', body: JSON.stringify({ name, building_id: buildingId }) }),
+    request<Room>(`/rooms/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name, building_id: buildingId }),
+    }),
   delete: (id: number) => request<void>(`/rooms/${id}`, { method: 'DELETE' }),
 }

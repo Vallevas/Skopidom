@@ -3,12 +3,23 @@ package item
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/Vallevas/Skopidom/internal/domain/entity"
 	"github.com/Vallevas/Skopidom/internal/domain/repository"
 	"github.com/Vallevas/Skopidom/pkg/logger"
 )
+
+// movePayload is the JSON structure recorded in the audit log for move events.
+type movePayload struct {
+	FromRoomID       uint64 `json:"from_room_id"`
+	FromRoomName     string `json:"from_room_name"`
+	FromBuildingName string `json:"from_building_name"`
+	ToRoomID         uint64 `json:"to_room_id"`
+	ToRoomName       string `json:"to_room_name"`
+	ToBuildingName   string `json:"to_building_name"`
+}
 
 // Update changes the mutable fields of an existing active item.
 func (uc *itemUseCase) Update(ctx context.Context, input UpdateInput) (*entity.Item, error) {
@@ -40,7 +51,8 @@ func (uc *itemUseCase) Update(ctx context.Context, input UpdateInput) (*entity.I
 	return item, nil
 }
 
-// MoveToRoom moves an item to a different room.
+// MoveToRoom moves an item to a different room and records from/to details
+// in the audit log so the full movement history is always available.
 func (uc *itemUseCase) MoveToRoom(
 	ctx context.Context,
 	itemID uint64,
@@ -60,11 +72,22 @@ func (uc *itemUseCase) MoveToRoom(
 		return nil, fmt.Errorf("item %d: %w", itemID, logger.ErrDisposed)
 	}
 	if item.RoomID == roomID {
-		return item, nil // already in the target room — no-op
+		return item, nil // already in target room — no-op
 	}
 
-	if _, err := uc.rooms.GetByID(ctx, roomID); err != nil {
+	targetRoom, err := uc.rooms.GetByID(ctx, roomID)
+	if err != nil {
 		return nil, fmt.Errorf("item.MoveToRoom room: %w", err)
+	}
+
+	// Capture from/to data before updating.
+	payload := movePayload{
+		FromRoomID:       item.RoomID,
+		FromRoomName:     item.Room.Name,
+		FromBuildingName: item.Room.Building.Name,
+		ToRoomID:         targetRoom.ID,
+		ToRoomName:       targetRoom.Name,
+		ToBuildingName:   targetRoom.Building.Name,
 	}
 
 	if err := uc.items.MoveToRoom(ctx, itemID, roomID, actorID); err != nil {
@@ -76,7 +99,14 @@ func (uc *itemUseCase) MoveToRoom(
 		return nil, fmt.Errorf("item.MoveToRoom refetch: %w", err)
 	}
 
-	uc.logEvent(ctx, item, entity.ActionUpdated, actorID)
+	payloadBytes, _ := json.Marshal(payload)
+	_ = uc.audit.Log(ctx, &entity.AuditEvent{
+		ItemID:  item.ID,
+		ActorID: actorID,
+		Action:  entity.ActionMoved,
+		Payload: string(payloadBytes),
+	})
+
 	return item, nil
 }
 
@@ -119,7 +149,10 @@ func (uc *itemUseCase) GetByBarcode(ctx context.Context, barcode string) (*entit
 }
 
 // List returns items matching the provided filter.
-func (uc *itemUseCase) List(ctx context.Context, filter repository.ItemFilter) ([]*entity.Item, error) {
+func (uc *itemUseCase) List(
+	ctx context.Context,
+	filter repository.ItemFilter,
+) ([]*entity.Item, error) {
 	items, err := uc.items.List(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("item.List: %w", err)
@@ -141,7 +174,6 @@ func (uc *itemUseCase) AddPhoto(
 	if !item.IsMutable() {
 		return nil, fmt.Errorf("item %d: %w", itemID, logger.ErrDisposed)
 	}
-
 	photo := &entity.ItemPhoto{ItemID: itemID, URL: url}
 	if err := uc.photos.Add(ctx, photo); err != nil {
 		return nil, fmt.Errorf("item.AddPhoto persist: %w", err)

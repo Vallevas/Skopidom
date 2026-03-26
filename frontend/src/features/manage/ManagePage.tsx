@@ -6,18 +6,18 @@ import { buildingsApi, categoriesApi, roomsApi } from '@/shared/api/client'
 import { useToast } from '@/app/toast-context'
 import { cn } from '@/shared/ui/utils'
 
-type Tab = 'buildings' | 'categories' | 'rooms'
+type Tab = 'categories' | 'buildings' | 'rooms'
 
 export function ManagePage() {
   const { t } = useTranslation()
-  const [tab, setTab] = useState<Tab>('buildings')
+  const [tab, setTab] = useState<Tab>('categories')
 
   return (
     <div className="p-4 md:p-6 space-y-4">
       <h1 className="text-xl font-semibold">{t('nav.manage')}</h1>
 
       <div className="flex gap-1 border-b">
-        {(['buildings', 'categories', 'rooms'] as Tab[]).map((t_) => (
+        {(['categories', 'buildings', 'rooms'] as Tab[]).map((t_) => (
           <button
             key={t_}
             onClick={() => setTab(t_)}
@@ -33,8 +33,8 @@ export function ManagePage() {
         ))}
       </div>
 
-      {tab === 'buildings' && <BuildingsTab />}
       {tab === 'categories' && <CategoriesTab />}
+      {tab === 'buildings' && <BuildingsTab />}
       {tab === 'rooms' && <RoomsTab />}
     </div>
   )

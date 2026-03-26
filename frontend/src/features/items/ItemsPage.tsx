@@ -77,17 +77,23 @@ export function ItemsPage() {
       <div className="flex flex-wrap gap-2">
         <select
           value={filter.status ?? 'active'}
-          onChange={(e) => setFilter((f) => ({ ...f, status: e.target.value as ItemStatus }))}
+          onChange={(e) =>
+            setFilter((f) => ({ ...f, status: e.target.value as ItemStatus }))
+          }
           className="rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="active">{t('items.status_active')}</option>
+          <option value="in_repair">{t('items.status_in_repair')}</option>
           <option value="disposed">{t('items.status_disposed')}</option>
         </select>
 
         <select
           value={filter.category_id ?? ''}
           onChange={(e) =>
-            setFilter((f) => ({ ...f, category_id: e.target.value ? Number(e.target.value) : undefined }))
+            setFilter((f) => ({
+              ...f,
+              category_id: e.target.value ? Number(e.target.value) : undefined,
+            }))
           }
           className="rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
         >
@@ -99,7 +105,9 @@ export function ItemsPage() {
 
         <select
           value={selectedBuildingId ?? ''}
-          onChange={(e) => handleBuildingChange(e.target.value ? Number(e.target.value) : undefined)}
+          onChange={(e) =>
+            handleBuildingChange(e.target.value ? Number(e.target.value) : undefined)
+          }
           className="rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">{t('items.all_buildings')}</option>
@@ -112,7 +120,10 @@ export function ItemsPage() {
           <select
             value={filter.room_id ?? ''}
             onChange={(e) =>
-              setFilter((f) => ({ ...f, room_id: e.target.value ? Number(e.target.value) : undefined }))
+              setFilter((f) => ({
+                ...f,
+                room_id: e.target.value ? Number(e.target.value) : undefined,
+              }))
             }
             className="rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
           >
