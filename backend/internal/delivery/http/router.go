@@ -104,6 +104,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 					r.Get("/photos", uploadH.ListItemPhotos)
 					r.Patch("/", itemH.Update)
 					r.Patch("/room", itemH.MoveToRoom)
+					r.Patch("/repair", itemH.ToggleRepair)
 					r.Post("/photos", uploadH.UploadItemPhoto)
 					r.Delete("/photos/{photo_id}", uploadH.DeleteItemPhoto)
 					r.With(middleware.RequireAdmin).Delete("/", itemH.Dispose)

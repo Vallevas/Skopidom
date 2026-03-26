@@ -33,16 +33,15 @@ export class ApiClientError extends Error {
   }
 }
 
-// translateError maps backend English error messages to i18n translation keys.
-// Usage: t(translateError(err.message))
+// translateError maps backend English error messages to i18n keys.
 export function translateError(message: string): string {
-  if (message.includes('resource not found'))            return 'errors.resource_not_found'
-  if (message.includes('resource already exists'))       return 'errors.resource_already_exists'
-  if (message.includes('disposed and cannot'))           return 'errors.item_disposed'
-  if (message.includes('insufficient permissions'))      return 'errors.insufficient_permissions'
-  if (message.includes('unauthorized'))                  return 'errors.unauthorized'
-  if (message.includes('cannot delete own account'))     return 'errors.cannot_delete_own_account'
-  if (message.includes('cannot delete the last admin'))  return 'errors.cannot_delete_last_admin'
+  if (message.includes('resource not found'))              return 'errors.resource_not_found'
+  if (message.includes('resource already exists'))         return 'errors.resource_already_exists'
+  if (message.includes('disposed and cannot'))             return 'errors.item_disposed'
+  if (message.includes('insufficient permissions'))        return 'errors.insufficient_permissions'
+  if (message.includes('unauthorized'))                    return 'errors.unauthorized'
+  if (message.includes('cannot delete own account'))       return 'errors.cannot_delete_own_account'
+  if (message.includes('cannot delete the last admin'))    return 'errors.cannot_delete_last_admin'
   if (message.includes('cannot downgrade the last admin')) return 'errors.cannot_downgrade_last_admin'
   return 'errors.unknown'
 }
@@ -88,8 +87,12 @@ export const itemsApi = {
     request<Item>(`/items/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   moveToRoom: (id: number, body: MoveToRoomRequest) =>
     request<Item>(`/items/${id}/room`, { method: 'PATCH', body: JSON.stringify(body) }),
-  dispose: (id: number) => request<void>(`/items/${id}`, { method: 'DELETE' }),
-  getAuditLog: (id: number) => request<AuditEvent[]>(`/items/${id}/audit`),
+  toggleRepair: (id: number) =>
+    request<Item>(`/items/${id}/repair`, { method: 'PATCH' }),
+  dispose: (id: number) =>
+    request<void>(`/items/${id}`, { method: 'DELETE' }),
+  getAuditLog: (id: number) =>
+    request<AuditEvent[]>(`/items/${id}/audit`),
 
   listPhotos: (id: number) => request<ItemPhoto[]>(`/items/${id}/photos`),
   uploadPhoto: (id: number, file: File) => {
@@ -132,7 +135,10 @@ export const categoriesApi = {
 export const buildingsApi = {
   list: () => request<Building[]>('/buildings'),
   create: (name: string, address: string) =>
-    request<Building>('/buildings', { method: 'POST', body: JSON.stringify({ name, address }) }),
+    request<Building>('/buildings', {
+      method: 'POST',
+      body: JSON.stringify({ name, address }),
+    }),
   update: (id: number, name: string, address: string) =>
     request<Building>(`/buildings/${id}`, {
       method: 'PATCH',

@@ -19,18 +19,14 @@ type UseCase interface {
 	GetByBarcode(ctx context.Context, barcode string) (*entity.Item, error)
 	List(ctx context.Context, filter repository.ItemFilter) ([]*entity.Item, error)
 	ListAuditEvents(ctx context.Context, itemID uint64) ([]*entity.AuditEvent, error)
-
-	// MoveToRoom moves an item to a different room and logs the change.
 	MoveToRoom(ctx context.Context, itemID uint64, roomID uint64, actorID uint64) (*entity.Item, error)
-
-	// AddPhoto stores a new photo for an item.
 	AddPhoto(ctx context.Context, itemID uint64, url string, actorID uint64) (*entity.ItemPhoto, error)
-
-	// ListPhotos returns all photos for an item.
 	ListPhotos(ctx context.Context, itemID uint64) ([]*entity.ItemPhoto, error)
-
-	// DeletePhoto removes a photo from an item.
 	DeletePhoto(ctx context.Context, itemID uint64, photoID uint64, actorID uint64) error
+
+	// ToggleRepair switches an active item to in_repair and vice versa.
+	// Returns the updated item and the audit action that was recorded.
+	ToggleRepair(ctx context.Context, itemID uint64, actorID uint64) (*entity.Item, error)
 }
 
 // CreateInput holds the data required to register a new inventory item.

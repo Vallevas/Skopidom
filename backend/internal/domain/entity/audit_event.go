@@ -11,11 +11,15 @@ const (
 	ActionCreated AuditAction = "created"
 	// ActionUpdated is recorded when an item's mutable fields are changed.
 	ActionUpdated AuditAction = "updated"
-	// ActionDisposed is recorded when an item is written off.
+	// ActionDisposed is recorded when an item is permanently written off.
 	ActionDisposed AuditAction = "disposed"
 	// ActionMoved is recorded when an item is moved to a different room.
-	// The Payload contains from_room and to_room fields for full traceability.
+	// Payload contains from_room and to_room fields for full traceability.
 	ActionMoved AuditAction = "moved"
+	// ActionSentToRepair is recorded when an item's status changes to in_repair.
+	ActionSentToRepair AuditAction = "sent_to_repair"
+	// ActionReturnedFromRepair is recorded when an in_repair item returns to active.
+	ActionReturnedFromRepair AuditAction = "returned_from_repair"
 )
 
 // AuditEvent is an immutable record of a single lifecycle change on an item.
@@ -29,8 +33,7 @@ type AuditEvent struct {
 	Action AuditAction `json:"action"`
 
 	// Payload is a JSON snapshot of the item state at the moment of the event.
-	// For ActionMoved it additionally contains from_room_id, from_room_name,
-	// from_building_name, to_room_id, to_room_name, to_building_name.
+	// For ActionMoved it additionally contains from/to room and building info.
 	Payload string `json:"payload"`
 
 	// TxHash is the Ethereum transaction hash anchoring this event on-chain.

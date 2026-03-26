@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Pencil, Trash2, Camera, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Camera, X, ChevronDown, ChevronUp, Wrench } from 'lucide-react'
 import { itemsApi, buildingsApi, roomsApi, translateError } from '@/shared/api/client'
 import { useAuth } from '@/app/auth-context'
 import { useToast } from '@/app/toast-context'
@@ -77,6 +77,17 @@ export function ItemDetailPage() {
     onError: (err) => toast.error(t(translateError((err as Error).message))),
   })
 
+  const repairMutation = useMutation({
+    mutationFn: () => itemsApi.toggleRepair(itemId),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['item', itemId], updated)
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['audit', itemId] })
+      toast.success(t('common.success'))
+    },
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
+  })
+
   const disposeMutation = useMutation({
     mutationFn: () => itemsApi.dispose(itemId),
     onSuccess: () => {
@@ -106,19 +117,18 @@ export function ItemDetailPage() {
   if (!item) return null
 
   const isAdmin = user?.role === 'admin'
-  // Only active and in_repair items are mutable — disposed items are fully locked.
   const canEdit = item.status !== 'disposed'
 
   const statusBadge = {
     disposed: { label: t('items.disposed_badge'), cls: 'bg-destructive/10 text-destructive' },
-    in_repair: { label: t('items.in_repair_badge'), cls: 'bg-amber-100 text-amber-800' },
+    in_repair: { label: t('items.in_repair_badge'), cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
     active: null,
   }[item.status]
 
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-5">
-      {/* Back + dispose button (top right) */}
-      <div className="flex items-center justify-between">
+      {/* Back + action buttons */}
+      <div className="flex items-center justify-between gap-2">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -127,19 +137,42 @@ export function ItemDetailPage() {
           {t('common.back')}
         </button>
 
-        {isAdmin && item.status === 'active' && (
-          <button
-            onClick={() => setConfirmDispose(true)}
-            className="flex items-center gap-1.5 rounded-md border border-destructive text-destructive px-3 py-1.5 text-sm hover:bg-destructive/10 transition-colors"
-          >
-            <Trash2 size={15} />
-            {t('items.dispose')}
-          </button>
+        {/* Repair toggle + dispose — only shown for non-disposed items */}
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            {/* Repair toggle — amber button */}
+            <button
+              onClick={() => repairMutation.mutate()}
+              disabled={repairMutation.isPending}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50',
+                item.status === 'in_repair'
+                  ? 'border-teal-500 text-teal-700 hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-900/20'
+                  : 'border-amber-500 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20',
+              )}
+            >
+              <Wrench size={15} />
+              {item.status === 'in_repair'
+                ? t('items.return_from_repair')
+                : t('items.send_to_repair')}
+            </button>
+
+            {/* Dispose — only for admin, only when active */}
+            {isAdmin && item.status === 'active' && (
+              <button
+                onClick={() => setConfirmDispose(true)}
+                className="flex items-center gap-1.5 rounded-md border border-destructive text-destructive px-3 py-1.5 text-sm hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 size={15} />
+                {t('items.dispose')}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Photos — hidden for disposed items */}
-      {canEdit && (
+      {/* Photos — editable for mutable items, read-only for disposed */}
+      {canEdit ? (
         <div className="space-y-2">
           {photos.length > 0 ? (
             <div className="flex gap-2 overflow-x-auto pb-1">
@@ -181,17 +214,11 @@ export function ItemDetailPage() {
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0]
-              if (file) {
-                photoMutation.mutate(file)
-                e.target.value = ''
-              }
+              if (file) { photoMutation.mutate(file); e.target.value = '' }
             }}
           />
         </div>
-      )}
-
-      {/* Photos read-only view for disposed items */}
-      {!canEdit && photos.length > 0 && (
+      ) : photos.length > 0 ? (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {photos.map((photo) => (
             <div key={photo.id} className="shrink-0 w-40 h-28 rounded-lg overflow-hidden bg-muted opacity-70">
@@ -199,9 +226,9 @@ export function ItemDetailPage() {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
-      {/* Header */}
+      {/* Item header */}
       <div className="flex items-start justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold">{item.name}</h1>
@@ -228,7 +255,7 @@ export function ItemDetailPage() {
         />
       </div>
 
-      {/* Description — label matches InfoRow style but slightly larger */}
+      {/* Description */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground font-medium">
@@ -236,10 +263,7 @@ export function ItemDetailPage() {
           </span>
           {canEdit && !editingDesc && (
             <button
-              onClick={() => {
-                setDescription(item.description)
-                setEditingDesc(true)
-              }}
+              onClick={() => { setDescription(item.description); setEditingDesc(true) }}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <Pencil size={12} />
@@ -344,7 +368,7 @@ export function ItemDetailPage() {
         </div>
       )}
 
-      {/* Audit log — button and content together at the bottom */}
+      {/* Audit log */}
       <div className="border-t pt-4 space-y-3">
         <button
           onClick={() => setShowAudit((v) => !v)}
@@ -369,10 +393,7 @@ export function ItemDetailPage() {
                 {t('common.cancel')}
               </button>
               <button
-                onClick={() => {
-                  setConfirmDispose(false)
-                  disposeMutation.mutate()
-                }}
+                onClick={() => { setConfirmDispose(false); disposeMutation.mutate() }}
                 className="flex-1 rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:bg-destructive/90 transition-colors"
               >
                 {t('items.dispose')}

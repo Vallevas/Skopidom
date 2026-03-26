@@ -22,9 +22,6 @@
     "title": "Items",
     "add": "Add item",
     "search": "Search by name or barcode",
-    "filter_status": "Status",
-    "filter_category": "Category",
-    "filter_room": "Room",
     "all_categories": "All categories",
     "all_buildings": "All buildings",
     "all_rooms": "All rooms",
@@ -46,6 +43,8 @@
     "dispose_confirm": "Are you sure? This action is irreversible.",
     "disposed_badge": "Disposed",
     "in_repair_badge": "In repair",
+    "send_to_repair": "Send to repair",
+    "return_from_repair": "Return from repair",
     "empty": "No items found",
     "upload_photo": "Add photo",
     "photo_uploaded": "Photo uploaded",
@@ -61,7 +60,6 @@
   "scanner": {
     "title": "Barcode Scanner",
     "instruction": "Point the camera at a barcode",
-    "no_camera": "Camera unavailable",
     "camera_error": "Camera access error",
     "item_found": "Item found",
     "item_not_found": "Item not found",
@@ -78,8 +76,6 @@
     "role": "Role",
     "role_admin": "Administrator",
     "role_editor": "Editor",
-    "edit": "Edit",
-    "delete": "Delete",
     "delete_confirm": "Delete user {{name}}?",
     "empty": "No users found"
   },
@@ -99,6 +95,8 @@
     "action_updated": "Updated",
     "action_disposed": "Disposed",
     "action_moved": "Moved",
+    "action_sent_to_repair": "Sent to repair",
+    "action_returned_from_repair": "Returned from repair",
     "by": "by: {{name}}",
     "moved_from": "from {{from_building}} — {{from_room}}",
     "moved_to": "to {{to_building}} — {{to_room}}",
@@ -132,8 +130,6 @@
     "confirm": "Confirm",
     "close": "Close",
     "back": "Back",
-    "yes": "Yes",
-    "no": "No",
     "required": "Required field",
     "unknown_error": "An unknown error occurred"
   }

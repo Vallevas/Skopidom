@@ -56,7 +56,13 @@ export interface Item {
   photos?: ItemPhoto[]
 }
 
-export type AuditAction = 'created' | 'updated' | 'disposed' | 'moved'
+export type AuditAction =
+  | 'created'
+  | 'updated'
+  | 'disposed'
+  | 'moved'
+  | 'sent_to_repair'
+  | 'returned_from_repair'
 
 // MovePayload is embedded in AuditEvent.payload when action === 'moved'.
 export interface MovePayload {
