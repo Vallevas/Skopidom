@@ -5,7 +5,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { usersApi } from '@/shared/api/client'
+import { usersApi, translateError } from '@/shared/api/client'
 import type { User, UserRole } from '@/shared/api/types'
 import { useAuth } from '@/app/auth-context'
 import { useToast } from '@/app/toast-context'
@@ -27,7 +27,7 @@ export function UsersPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => usersApi.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
   })
 
   return (
@@ -148,9 +148,7 @@ function UserFormDialog({
   const toast = useToast()
   const isEdit = !!user
 
-  type CreateData = z.infer<typeof createSchema>
-  type EditData = z.infer<typeof editSchema>
-  type FormData = CreateData
+  type FormData = z.infer<typeof createSchema>
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } =
     useForm<FormData>({
@@ -163,14 +161,13 @@ function UserFormDialog({
   async function onSubmit(data: FormData) {
     try {
       if (isEdit) {
-        const editData = data as EditData
-        await usersApi.update(user!.id, { full_name: editData.full_name, role: editData.role })
+        await usersApi.update(user!.id, { full_name: data.full_name, role: data.role })
       } else {
         await usersApi.create(data)
       }
       onSuccess()
     } catch (err) {
-      toast.error((err as Error).message)
+      toast.error(t(translateError((err as Error).message)))
     }
   }
 

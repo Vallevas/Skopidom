@@ -9,8 +9,19 @@ interface Props {
 
 export function ItemCard({ item }: Props) {
   const { t } = useTranslation()
-
   const firstPhoto = item.photos?.[0]
+
+  const statusBadge = {
+    disposed: {
+      label: t('items.disposed_badge'),
+      cls: 'bg-destructive/10 text-destructive',
+    },
+    in_repair: {
+      label: t('items.in_repair_badge'),
+      cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+    },
+    active: null,
+  }[item.status]
 
   return (
     <div
@@ -22,13 +33,11 @@ export function ItemCard({ item }: Props) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="font-medium truncate">{item.name}</p>
-          <p className="text-xs text-muted-foreground font-mono mt-0.5">
-            {item.barcode}
-          </p>
+          <p className="text-xs text-muted-foreground font-mono mt-0.5">{item.barcode}</p>
         </div>
-        {item.status === 'disposed' && (
-          <span className="shrink-0 rounded-full bg-destructive/10 text-destructive text-xs px-2 py-0.5">
-            {t('items.disposed_badge')}
+        {statusBadge && (
+          <span className={cn('shrink-0 rounded-full text-xs px-2 py-0.5', statusBadge.cls)}>
+            {statusBadge.label}
           </span>
         )}
       </div>

@@ -22,13 +22,11 @@
     "title": "Items",
     "add": "Add item",
     "search": "Search by name or barcode",
-    "filter_status": "Status",
-    "filter_category": "Category",
-    "filter_room": "Room",
     "all_categories": "All categories",
     "all_buildings": "All buildings",
     "all_rooms": "All rooms",
     "status_active": "Active",
+    "status_in_repair": "In repair",
     "status_disposed": "Disposed",
     "barcode": "Barcode",
     "name": "Name",
@@ -44,10 +42,13 @@
     "dispose": "Dispose",
     "dispose_confirm": "Are you sure? This action is irreversible.",
     "disposed_badge": "Disposed",
+    "in_repair_badge": "In repair",
+    "send_to_repair": "Send to repair",
+    "return_from_repair": "Return from repair",
     "empty": "No items found",
     "upload_photo": "Add photo",
     "photo_uploaded": "Photo uploaded",
-    "audit_log": "Change history",
+    "audit_log": "Changelog",
     "no_audit": "No history yet",
     "move_room": "Move to another room",
     "select_building": "Select building",
@@ -59,7 +60,6 @@
   "scanner": {
     "title": "Barcode Scanner",
     "instruction": "Point the camera at a barcode",
-    "no_camera": "Camera unavailable",
     "camera_error": "Camera access error",
     "item_found": "Item found",
     "item_not_found": "Item not found",
@@ -76,8 +76,6 @@
     "role": "Role",
     "role_admin": "Administrator",
     "role_editor": "Editor",
-    "edit": "Edit",
-    "delete": "Delete",
     "delete_confirm": "Delete user {{name}}?",
     "empty": "No users found"
   },
@@ -96,7 +94,12 @@
     "action_created": "Created",
     "action_updated": "Updated",
     "action_disposed": "Disposed",
+    "action_moved": "Moved",
+    "action_sent_to_repair": "Sent to repair",
+    "action_returned_from_repair": "Returned from repair",
     "by": "by: {{name}}",
+    "moved_from": "from {{from_building}} — {{from_room}}",
+    "moved_to": "to {{to_building}} — {{to_room}}",
     "blockchain_hash": "Transaction hash"
   },
   "settings": {
@@ -104,6 +107,17 @@
     "language": "Language",
     "lang_ru": "Русский",
     "lang_en": "English"
+  },
+  "errors": {
+    "resource_not_found": "Resource not found",
+    "resource_already_exists": "Resource already exists",
+    "item_disposed": "Item is disposed and cannot be modified",
+    "insufficient_permissions": "Insufficient permissions",
+    "unauthorized": "Authentication required",
+    "cannot_delete_own_account": "Cannot delete your own account",
+    "cannot_delete_last_admin": "Cannot delete the last administrator",
+    "cannot_downgrade_last_admin": "Cannot downgrade the last administrator",
+    "unknown": "An unknown error occurred"
   },
   "common": {
     "save": "Save",
@@ -116,8 +130,6 @@
     "confirm": "Confirm",
     "close": "Close",
     "back": "Back",
-    "yes": "Yes",
-    "no": "No",
     "required": "Required field",
     "unknown_error": "An unknown error occurred"
   }

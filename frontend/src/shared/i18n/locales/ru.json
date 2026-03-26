@@ -1,8 +1,5 @@
 {
-  "app": {
-    "name": "Skopidom",
-    "tagline": "Учёт инвентаря"
-  },
+  "app": { "name": "Skopidom", "tagline": "Учёт инвентаря" },
   "nav": {
     "items": "Предметы",
     "scanner": "Сканер",
@@ -22,13 +19,11 @@
     "title": "Предметы",
     "add": "Добавить предмет",
     "search": "Поиск по названию или штрих-коду",
-    "filter_status": "Статус",
-    "filter_category": "Категория",
-    "filter_room": "Комната",
     "all_categories": "Все категории",
     "all_buildings": "Все здания",
     "all_rooms": "Все комнаты",
     "status_active": "Активные",
+    "status_in_repair": "В ремонте",
     "status_disposed": "Списанные",
     "barcode": "Штрих-код",
     "name": "Название",
@@ -44,6 +39,9 @@
     "dispose": "Списать",
     "dispose_confirm": "Вы уверены? Это действие необратимо.",
     "disposed_badge": "Списан",
+    "in_repair_badge": "В ремонте",
+    "send_to_repair": "Отправить на ремонт",
+    "return_from_repair": "Снять с ремонта",
     "empty": "Предметы не найдены",
     "upload_photo": "Добавить фото",
     "photo_uploaded": "Фото загружено",
@@ -59,7 +57,6 @@
   "scanner": {
     "title": "Сканер штрих-кода",
     "instruction": "Наведите камеру на штрих-код",
-    "no_camera": "Камера недоступна",
     "camera_error": "Ошибка доступа к камере",
     "item_found": "Предмет найден",
     "item_not_found": "Предмет не найден",
@@ -76,8 +73,6 @@
     "role": "Роль",
     "role_admin": "Администратор",
     "role_editor": "Редактор",
-    "edit": "Редактировать",
-    "delete": "Удалить",
     "delete_confirm": "Удалить пользователя {{name}}?",
     "empty": "Пользователи не найдены"
   },
@@ -96,7 +91,12 @@
     "action_created": "Добавлен",
     "action_updated": "Изменён",
     "action_disposed": "Списан",
+    "action_moved": "Перемещён",
+    "action_sent_to_repair": "Отправлен на ремонт",
+    "action_returned_from_repair": "Снят с ремонта",
     "by": "кем: {{name}}",
+    "moved_from": "из {{from_building}} — {{from_room}}",
+    "moved_to": "в {{to_building}} — {{to_room}}",
     "blockchain_hash": "Хэш транзакции"
   },
   "settings": {
@@ -104,6 +104,17 @@
     "language": "Язык",
     "lang_ru": "Русский",
     "lang_en": "English"
+  },
+  "errors": {
+    "resource_not_found": "Ресурс не найден",
+    "resource_already_exists": "Ресурс уже существует",
+    "item_disposed": "Предмет списан и не может быть изменён",
+    "insufficient_permissions": "Недостаточно прав",
+    "unauthorized": "Необходима авторизация",
+    "cannot_delete_own_account": "Нельзя удалить собственный аккаунт",
+    "cannot_delete_last_admin": "Нельзя удалить последнего администратора",
+    "cannot_downgrade_last_admin": "Нельзя понизить роль последнего администратора",
+    "unknown": "Произошла неизвестная ошибка"
   },
   "common": {
     "save": "Сохранить",
@@ -116,8 +127,6 @@
     "confirm": "Подтвердить",
     "close": "Закрыть",
     "back": "Назад",
-    "yes": "Да",
-    "no": "Нет",
     "required": "Обязательное поле",
     "unknown_error": "Произошла неизвестная ошибка"
   }

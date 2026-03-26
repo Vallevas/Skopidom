@@ -2,8 +2,8 @@ import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Pencil, Trash2, Camera, X, ChevronDown, ChevronUp } from 'lucide-react'
-import { itemsApi, buildingsApi, roomsApi } from '@/shared/api/client'
+import { ArrowLeft, Pencil, Trash2, Camera, X, ChevronDown, ChevronUp, Wrench } from 'lucide-react'
+import { itemsApi, buildingsApi, roomsApi, translateError } from '@/shared/api/client'
 import { useAuth } from '@/app/auth-context'
 import { useToast } from '@/app/toast-context'
 import { AuditLog } from './AuditLog'
@@ -59,7 +59,7 @@ export function ItemDetailPage() {
       setEditingDesc(false)
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
   })
 
   const photoMutation = useMutation({
@@ -68,13 +68,24 @@ export function ItemDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['photos', itemId] })
       toast.success(t('items.photo_uploaded'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
   })
 
   const deletePhotoMutation = useMutation({
     mutationFn: (photoId: number) => itemsApi.deletePhoto(itemId, photoId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['photos', itemId] }),
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
+  })
+
+  const repairMutation = useMutation({
+    mutationFn: () => itemsApi.toggleRepair(itemId),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['item', itemId], updated)
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['audit', itemId] })
+      toast.success(t('common.success'))
+    },
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
   })
 
   const disposeMutation = useMutation({
@@ -83,7 +94,7 @@ export function ItemDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['items'] })
       navigate('/items', { replace: true })
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
   })
 
   const moveMutation = useMutation({
@@ -91,12 +102,13 @@ export function ItemDetailPage() {
     onSuccess: (updated) => {
       queryClient.setQueryData(['item', itemId], updated)
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['audit', itemId] })
       setMovingRoom(false)
       setSelectedBuildingId(undefined)
       setSelectedRoomId(undefined)
       toast.success(t('items.moved'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
   })
 
   if (isLoading) {
@@ -105,60 +117,96 @@ export function ItemDetailPage() {
   if (!item) return null
 
   const isAdmin = user?.role === 'admin'
-  const canEdit = item.status === 'active'
+  const canEdit = item.status !== 'disposed'
+
+  const statusBadge = {
+    disposed: { label: t('items.disposed_badge'), cls: 'bg-destructive/10 text-destructive' },
+    in_repair: { label: t('items.in_repair_badge'), cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
+    active: null,
+  }[item.status]
 
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-5">
-      {/* Back */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft size={16} />
-        {t('common.back')}
-      </button>
+      {/* Back + action buttons */}
+      <div className="flex items-center justify-between gap-2">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft size={16} />
+          {t('common.back')}
+        </button>
 
-      {/* Photos carousel */}
-      <div className="space-y-2">
-        {photos.length > 0 ? (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {photos.map((photo) => (
-              <div key={photo.id} className="relative shrink-0 w-40 h-28 rounded-lg overflow-hidden bg-muted">
-                <img src={photo.url} alt="" className="w-full h-full object-cover" />
-                {canEdit && (
+        {/* Repair toggle + dispose — only shown for non-disposed items */}
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            {/* Repair toggle — amber button */}
+            <button
+              onClick={() => repairMutation.mutate()}
+              disabled={repairMutation.isPending}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50',
+                item.status === 'in_repair'
+                  ? 'border-teal-500 text-teal-700 hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-900/20'
+                  : 'border-amber-500 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20',
+              )}
+            >
+              <Wrench size={15} />
+              {item.status === 'in_repair'
+                ? t('items.return_from_repair')
+                : t('items.send_to_repair')}
+            </button>
+
+            {/* Dispose — only for admin, only when active */}
+            {isAdmin && item.status === 'active' && (
+              <button
+                onClick={() => setConfirmDispose(true)}
+                className="flex items-center gap-1.5 rounded-md border border-destructive text-destructive px-3 py-1.5 text-sm hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 size={15} />
+                {t('items.dispose')}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Photos — editable for mutable items, read-only for disposed */}
+      {canEdit ? (
+        <div className="space-y-2">
+          {photos.length > 0 ? (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {photos.map((photo) => (
+                <div
+                  key={photo.id}
+                  className="relative shrink-0 w-40 h-28 rounded-lg overflow-hidden bg-muted"
+                >
+                  <img src={photo.url} alt="" className="w-full h-full object-cover" />
                   <button
                     onClick={() => deletePhotoMutation.mutate(photo.id)}
                     className="absolute top-1 right-1 rounded-full bg-black/60 text-white p-0.5 hover:bg-black/80 transition-colors"
                   >
                     <X size={12} />
                   </button>
-                )}
-              </div>
-            ))}
-            {canEdit && (
+                </div>
+              ))}
               <button
                 onClick={() => photoInputRef.current?.click()}
                 className="shrink-0 w-28 h-28 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
                 <Camera size={20} />
-                <span className="text-xs">{t('items.upload_photo')}</span>
+                <span className="text-xs text-center">{t('items.upload_photo')}</span>
               </button>
-            )}
-          </div>
-        ) : (
-          <div
-            className={cn(
-              'rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground',
-              canEdit && 'cursor-pointer hover:border-primary hover:text-primary transition-colors',
-            )}
-            onClick={() => canEdit && photoInputRef.current?.click()}
-          >
-            <Camera size={28} />
-            <span className="text-sm">{t('items.upload_photo')}</span>
-          </div>
-        )}
-
-        {canEdit && (
+            </div>
+          ) : (
+            <div
+              className="rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground cursor-pointer hover:border-primary hover:text-primary transition-colors"
+              onClick={() => photoInputRef.current?.click()}
+            >
+              <Camera size={28} />
+              <span className="text-sm">{t('items.upload_photo')}</span>
+            </div>
+          )}
           <input
             ref={photoInputRef}
             type="file"
@@ -166,30 +214,35 @@ export function ItemDetailPage() {
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0]
-              if (file) {
-                photoMutation.mutate(file)
-                e.target.value = ''
-              }
+              if (file) { photoMutation.mutate(file); e.target.value = '' }
             }}
           />
-        )}
-      </div>
+        </div>
+      ) : photos.length > 0 ? (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {photos.map((photo) => (
+            <div key={photo.id} className="shrink-0 w-40 h-28 rounded-lg overflow-hidden bg-muted opacity-70">
+              <img src={photo.url} alt="" className="w-full h-full object-cover" />
+            </div>
+          ))}
+        </div>
+      ) : null}
 
-      {/* Header */}
+      {/* Item header */}
       <div className="flex items-start justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold">{item.name}</h1>
           <p className="text-sm text-muted-foreground font-mono">{item.barcode}</p>
         </div>
-        {item.status === 'disposed' && (
-          <span className="rounded-full bg-destructive/10 text-destructive text-xs px-2 py-0.5 shrink-0">
-            {t('items.disposed_badge')}
+        {statusBadge && (
+          <span className={cn('rounded-full text-xs px-2 py-0.5 shrink-0', statusBadge.cls)}>
+            {statusBadge.label}
           </span>
         )}
       </div>
 
       {/* Info grid */}
-      <div className="grid grid-cols-2 gap-3 text-sm">
+      <div className="grid grid-cols-2 gap-3">
         <InfoRow label={t('items.category')} value={item.category?.name} />
         <InfoRow
           label={t('items.room')}
@@ -205,7 +258,9 @@ export function ItemDetailPage() {
       {/* Description */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">{t('items.description')}</span>
+          <span className="text-sm text-muted-foreground font-medium">
+            {t('items.description')}
+          </span>
           {canEdit && !editingDesc && (
             <button
               onClick={() => { setDescription(item.description); setEditingDesc(true) }}
@@ -247,7 +302,7 @@ export function ItemDetailPage() {
         )}
       </div>
 
-      {/* Move to room */}
+      {/* Move to room — only for mutable items */}
       {canEdit && (
         <div className="space-y-2">
           <button
@@ -291,7 +346,11 @@ export function ItemDetailPage() {
 
               <div className="flex gap-2">
                 <button
-                  onClick={() => { setMovingRoom(false); setSelectedBuildingId(undefined); setSelectedRoomId(undefined) }}
+                  onClick={() => {
+                    setMovingRoom(false)
+                    setSelectedBuildingId(undefined)
+                    setSelectedRoomId(undefined)
+                  }}
                   className="flex-1 rounded-md border px-3 py-1.5 text-sm hover:bg-accent transition-colors"
                 >
                   {t('common.cancel')}
@@ -309,18 +368,7 @@ export function ItemDetailPage() {
         </div>
       )}
 
-      {/* Actions — dispose */}
-      {isAdmin && canEdit && (
-        <button
-          onClick={() => setConfirmDispose(true)}
-          className="flex items-center gap-1.5 rounded-md border border-destructive text-destructive px-3 py-1.5 text-sm hover:bg-destructive/10 transition-colors"
-        >
-          <Trash2 size={15} />
-          {t('items.dispose')}
-        </button>
-      )}
-
-      {/* Audit log — button and content together at the bottom */}
+      {/* Audit log */}
       <div className="border-t pt-4 space-y-3">
         <button
           onClick={() => setShowAudit((v) => !v)}

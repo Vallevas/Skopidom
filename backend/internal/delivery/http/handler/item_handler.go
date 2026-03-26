@@ -53,21 +53,18 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	actorID := middleware.UserIDFromCtx(r.Context())
-	input := itemUC.CreateInput{
+	item, err := h.uc.Create(r.Context(), itemUC.CreateInput{
 		Barcode:     req.Barcode,
 		Name:        req.Name,
 		CategoryID:  req.CategoryID,
 		RoomID:      req.RoomID,
 		Description: req.Description,
 		ActorID:     actorID,
-	}
-
-	item, err := h.uc.Create(r.Context(), input)
+	})
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-
 	respond(w, http.StatusCreated, item)
 }
 
@@ -79,13 +76,11 @@ func (h *ItemHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		handleError(w, wrapInvalidInput(err))
 		return
 	}
-
 	item, err := h.uc.GetByID(r.Context(), id)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-
 	respond(w, http.StatusOK, item)
 }
 
@@ -105,13 +100,11 @@ func (h *ItemHandler) GetByBarcode(w http.ResponseWriter, r *http.Request) {
 // GET /api/v1/items?category_id=&room_id=&status=&date_from=&date_to=
 func (h *ItemHandler) List(w http.ResponseWriter, r *http.Request) {
 	filter := buildItemFilter(r)
-
 	items, err := h.uc.List(r.Context(), filter)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-
 	respond(w, http.StatusOK, items)
 }
 
@@ -123,26 +116,21 @@ func (h *ItemHandler) Update(w http.ResponseWriter, r *http.Request) {
 		handleError(w, wrapInvalidInput(err))
 		return
 	}
-
 	var req updateItemRequest
 	if err := decodeJSON(r, &req); err != nil {
 		handleError(w, wrapInvalidInput(err))
 		return
 	}
-
 	actorID := middleware.UserIDFromCtx(r.Context())
-	input := itemUC.UpdateInput{
+	item, err := h.uc.Update(r.Context(), itemUC.UpdateInput{
 		ItemID:      id,
 		Description: req.Description,
 		ActorID:     actorID,
-	}
-
-	item, err := h.uc.Update(r.Context(), input)
+	})
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-
 	respond(w, http.StatusOK, item)
 }
 
@@ -154,20 +142,35 @@ func (h *ItemHandler) MoveToRoom(w http.ResponseWriter, r *http.Request) {
 		handleError(w, wrapInvalidInput(err))
 		return
 	}
-
 	var req moveToRoomRequest
 	if err := decodeJSON(r, &req); err != nil {
 		handleError(w, wrapInvalidInput(err))
 		return
 	}
-
 	actorID := middleware.UserIDFromCtx(r.Context())
 	item, err := h.uc.MoveToRoom(r.Context(), id, req.RoomID, actorID)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
+	respond(w, http.StatusOK, item)
+}
 
+// ToggleRepair godoc
+// PATCH /api/v1/items/{id}/repair
+// Switches active ↔ in_repair. No request body needed.
+func (h *ItemHandler) ToggleRepair(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+	actorID := middleware.UserIDFromCtx(r.Context())
+	item, err := h.uc.ToggleRepair(r.Context(), id, actorID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 	respond(w, http.StatusOK, item)
 }
 
@@ -179,13 +182,11 @@ func (h *ItemHandler) GetAuditLog(w http.ResponseWriter, r *http.Request) {
 		handleError(w, wrapInvalidInput(err))
 		return
 	}
-
 	events, err := h.uc.ListAuditEvents(r.Context(), id)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-
 	respond(w, http.StatusOK, events)
 }
 
@@ -197,25 +198,20 @@ func (h *ItemHandler) Dispose(w http.ResponseWriter, r *http.Request) {
 		handleError(w, wrapInvalidInput(err))
 		return
 	}
-
 	actorID := middleware.UserIDFromCtx(r.Context())
-
 	if err := h.uc.Dispose(r.Context(), id, actorID); err != nil {
 		handleError(w, err)
 		return
 	}
-
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-// parseIDParam extracts and parses a uint64 URL path parameter.
 func parseIDParam(r *http.Request, name string) (uint64, error) {
 	return strconv.ParseUint(chi.URLParam(r, name), 10, 64)
 }
 
-// buildItemFilter reads query parameters and constructs an ItemFilter.
 func buildItemFilter(r *http.Request) repository.ItemFilter {
 	q := r.URL.Query()
 	filter := repository.ItemFilter{}
@@ -246,4 +242,3 @@ func buildItemFilter(r *http.Request) repository.ItemFilter {
 	}
 	return filter
 }
-
