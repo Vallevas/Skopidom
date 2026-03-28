@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -23,9 +23,10 @@ interface Props {
   onClose: () => void
   categories: Category[]
   buildings: Building[]
+  initialBarcode?: string
 }
 
-export function CreateItemDialog({ open, onClose, categories, buildings }: Props) {
+export function CreateItemDialog({ open, onClose, categories, buildings, initialBarcode }: Props) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>()
@@ -55,6 +56,13 @@ export function CreateItemDialog({ open, onClose, categories, buildings }: Props
     },
   })
 
+  // Set initial barcode when dialog opens
+  useEffect(() => {
+    if (open && initialBarcode) {
+      setValue('barcode', initialBarcode)
+    }
+  }, [open, initialBarcode, setValue])
+
   function onSubmit({ building_id: _b, ...data }: FormData) {
     mutation.mutate(data)
   }
@@ -68,87 +76,89 @@ export function CreateItemDialog({ open, onClose, categories, buildings }: Props
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
-      <div className="w-full sm:max-w-md bg-card rounded-t-xl sm:rounded-xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg font-semibold">{t('items.add')}</h2>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 overflow-y-auto">
+      <div className="w-full sm:max-w-md bg-card rounded-t-xl sm:rounded-xl shadow-lg my-auto">
+        <div className="p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+          <h2 className="text-lg font-semibold">{t('items.add')}</h2>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <Field label={t('items.barcode')} error={!!errors.barcode}>
-            <input className={inputCls} {...register('barcode')} placeholder="INV-2024-001" />
-          </Field>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+            <Field label={t('items.barcode')} error={!!errors.barcode}>
+              <input className={inputCls} {...register('barcode')} placeholder="INV-2024-001" />
+            </Field>
 
-          <Field label={t('items.name')} error={!!errors.name}>
-            <input className={inputCls} {...register('name')} />
-          </Field>
+            <Field label={t('items.name')} error={!!errors.name}>
+              <input className={inputCls} {...register('name')} />
+            </Field>
 
-          <Field label={t('items.category')} error={!!errors.category_id}>
-            <select className={inputCls} {...register('category_id')}>
-              <option value="">—</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </Field>
+            <Field label={t('items.category')} error={!!errors.category_id}>
+              <select className={inputCls} {...register('category_id')}>
+                <option value="">—</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </Field>
 
-          {/* Building first */}
-          <Field label={t('items.building')} error={!!errors.building_id}>
-            <select
-              className={inputCls}
-              {...register('building_id')}
-              onChange={(e) => {
-                const val = Number(e.target.value)
-                setSelectedBuildingId(val || undefined)
-                setValue('room_id', 0) // reset room on building change
-              }}
-            >
-              <option value="">—</option>
-              {buildings.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-          </Field>
+            {/* Building first */}
+            <Field label={t('items.building')} error={!!errors.building_id}>
+              <select
+                className={inputCls}
+                {...register('building_id')}
+                onChange={(e) => {
+                  const val = Number(e.target.value)
+                  setSelectedBuildingId(val || undefined)
+                  setValue('room_id', 0) // reset room on building change
+                }}
+              >
+                <option value="">—</option>
+                {buildings.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </Field>
 
-          {/* Room — only after building */}
-          <Field label={t('items.room')} error={!!errors.room_id}>
-            <select
-              className={inputCls}
-              {...register('room_id')}
-              disabled={!selectedBuildingId}
-            >
-              <option value="">
-                {selectedBuildingId ? '—' : t('items.select_building_first')}
-              </option>
-              {rooms.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
-          </Field>
+            {/* Room — only after building */}
+            <Field label={t('items.room')} error={!!errors.room_id}>
+              <select
+                className={inputCls}
+                {...register('room_id')}
+                disabled={!selectedBuildingId}
+              >
+                <option value="">
+                  {selectedBuildingId ? '—' : t('items.select_building_first')}
+                </option>
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </Field>
 
-          <Field label={t('items.description')}>
-            <textarea className={inputCls + ' resize-none'} rows={2} {...register('description')} />
-          </Field>
+            <Field label={t('items.description')}>
+              <textarea className={inputCls + ' resize-none'} rows={2} {...register('description')} />
+            </Field>
 
-          {mutation.error && (
-            <p className="text-sm text-destructive">{(mutation.error as Error).message}</p>
-          )}
+            {mutation.error && (
+              <p className="text-sm text-destructive">{(mutation.error as Error).message}</p>
+            )}
 
-          <div className="flex gap-2 pt-2">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex-1 rounded-md border px-4 py-2 text-sm hover:bg-accent transition-colors"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="flex-1 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              {t('common.save')}
-            </button>
-          </div>
-        </form>
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="flex-1 rounded-md border px-4 py-2 text-sm hover:bg-accent transition-colors"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={mutation.isPending}
+                className="flex-1 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                {t('common.save')}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )

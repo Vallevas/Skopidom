@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "omniroute": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "OmniRoute",
+      "options": {
+        "baseURL": "http://localhost:20128/v1",
+        "apiKey": "YOUR_OMNIROUTE_API_KEY"
+      },
+      "models": {
+        "kr/claude-sonnet-4.5": {
+          "name": "kr/claude-sonnet-4.5"
+        },
+        "kiro/claude-sonnet-4.5": {
+          "name": "kiro/claude-sonnet-4.5"
+        },
+        "kr/claude-haiku-4.5": {
+          "name": "kr/claude-haiku-4.5"
+        },
+        "kiro/claude-haiku-4.5": {
+          "name": "kiro/claude-haiku-4.5"
+        }
+      }
+    }
+  }
+}

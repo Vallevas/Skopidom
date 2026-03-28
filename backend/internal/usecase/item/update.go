@@ -159,13 +159,17 @@ func (uc *itemUseCase) MoveToRoom(
 	return item, nil
 }
 
-// Dispose transitions an item to the disposed state.
+// Dispose permanently writes off an item.
+// Both active and in_repair items can be disposed — only already-disposed
+// items are rejected. This allows disposing items that were sent to repair
+// but turned out to be beyond repair.
 func (uc *itemUseCase) Dispose(ctx context.Context, itemID uint64, actorID uint64) error {
 	item, err := uc.items.GetByID(ctx, itemID)
 	if err != nil {
 		return fmt.Errorf("item.Dispose fetch: %w", err)
 	}
-	if !item.IsActive() {
+	// Reject only items that are already disposed.
+	if item.Status == entity.StatusDisposed {
 		return fmt.Errorf("item %d: %w", itemID, logger.ErrDisposed)
 	}
 	item.Dispose(actorID)

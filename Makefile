@@ -65,12 +65,12 @@ down: ## Stop all services
 reset: ## Stop all services and wipe volumes (full reset)
 	$(DOCKER_COMPOSE) down -v
 
-.PHONY: postgres-up
-postgres-up: ## Start only postgres
+.PHONY: db-up
+db-up: ## Start only postgres
 	$(DOCKER_COMPOSE) up postgres -d
 
-.PHONY: postgres-down
-postgres-down: ## Stop only postgres
+.PHONY: db-down
+db-down: ## Stop only postgres
 	$(DOCKER_COMPOSE) stop postgres
 
 .PHONY: logs

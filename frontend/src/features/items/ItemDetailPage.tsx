@@ -1,13 +1,100 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Pencil, Trash2, Camera, X, ChevronDown, ChevronUp, Wrench } from 'lucide-react'
+import {
+  ArrowLeft, Pencil, Trash2, Camera, X, ChevronDown, ChevronUp,
+  Wrench, ChevronLeft, ChevronRight,
+} from 'lucide-react'
 import { itemsApi, buildingsApi, roomsApi, translateError } from '@/shared/api/client'
+import type { ItemPhoto } from '@/shared/api/types'
 import { useAuth } from '@/app/auth-context'
 import { useToast } from '@/app/toast-context'
 import { AuditLog } from './AuditLog'
 import { cn } from '@/shared/ui/utils'
+
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+
+function Lightbox({
+  photos,
+  startIndex,
+  onClose,
+}: {
+  photos: ItemPhoto[]
+  startIndex: number
+  onClose: () => void
+}) {
+  const [index, setIndex] = useState(startIndex)
+
+  const prev = useCallback(() =>
+    setIndex((i) => (i - 1 + photos.length) % photos.length), [photos.length])
+
+  const next = useCallback(() =>
+    setIndex((i) => (i + 1) % photos.length), [photos.length])
+
+  // Keyboard navigation.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowLeft') prev()
+      if (e.key === 'ArrowRight') next()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose, prev, next])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+      onClick={onClose}
+    >
+      {/* Close */}
+      <button
+        className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
+        onClick={onClose}
+      >
+        <X size={28} />
+      </button>
+
+      {/* Prev */}
+      {photos.length > 1 && (
+        <button
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors p-2"
+          onClick={(e) => { e.stopPropagation(); prev() }}
+        >
+          <ChevronLeft size={36} />
+        </button>
+      )}
+
+      {/* Image */}
+      <img
+        src={photos[index].url}
+        alt=""
+        className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+
+      {/* Next */}
+      {photos.length > 1 && (
+        <button
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors p-2"
+          onClick={(e) => { e.stopPropagation(); next() }}
+        >
+          <ChevronRight size={36} />
+        </button>
+      )}
+
+      {/* Counter */}
+      {photos.length > 1 && (
+        <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
+          {index + 1} / {photos.length}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// ── ItemDetailPage ────────────────────────────────────────────────────────────
 
 export function ItemDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -25,6 +112,7 @@ export function ItemDetailPage() {
   const [movingRoom, setMovingRoom] = useState(false)
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>()
   const [selectedRoomId, setSelectedRoomId] = useState<number | undefined>()
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   const { data: item, isLoading } = useQuery({
@@ -118,10 +206,15 @@ export function ItemDetailPage() {
 
   const isAdmin = user?.role === 'admin'
   const canEdit = item.status !== 'disposed'
+  // Dispose is available for active and in_repair items (admin only).
+  const canDispose = isAdmin && item.status !== 'disposed'
 
   const statusBadge = {
     disposed: { label: t('items.disposed_badge'), cls: 'bg-destructive/10 text-destructive' },
-    in_repair: { label: t('items.in_repair_badge'), cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
+    in_repair: {
+      label: t('items.in_repair_badge'),
+      cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+    },
     active: null,
   }[item.status]
 
@@ -137,10 +230,9 @@ export function ItemDetailPage() {
           {t('common.back')}
         </button>
 
-        {/* Repair toggle + dispose — only shown for non-disposed items */}
         {canEdit && (
           <div className="flex items-center gap-2">
-            {/* Repair toggle — amber button */}
+            {/* Repair toggle */}
             <button
               onClick={() => repairMutation.mutate()}
               disabled={repairMutation.isPending}
@@ -157,8 +249,8 @@ export function ItemDetailPage() {
                 : t('items.send_to_repair')}
             </button>
 
-            {/* Dispose — only for admin, only when active */}
-            {isAdmin && item.status === 'active' && (
+            {/* Dispose — active AND in_repair, admin only */}
+            {canDispose && (
               <button
                 onClick={() => setConfirmDispose(true)}
                 className="flex items-center gap-1.5 rounded-md border border-destructive text-destructive px-3 py-1.5 text-sm hover:bg-destructive/10 transition-colors"
@@ -171,17 +263,22 @@ export function ItemDetailPage() {
         )}
       </div>
 
-      {/* Photos — editable for mutable items, read-only for disposed */}
+      {/* Photos */}
       {canEdit ? (
         <div className="space-y-2">
           {photos.length > 0 ? (
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {photos.map((photo) => (
+              {photos.map((photo, idx) => (
                 <div
                   key={photo.id}
-                  className="relative shrink-0 w-40 h-28 rounded-lg overflow-hidden bg-muted"
+                  className="relative shrink-0 w-40 h-28 rounded-lg overflow-hidden bg-muted group"
                 >
-                  <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={photo.url}
+                    alt=""
+                    className="w-full h-full object-cover cursor-zoom-in"
+                    onClick={() => setLightboxIndex(idx)}
+                  />
                   <button
                     onClick={() => deletePhotoMutation.mutate(photo.id)}
                     className="absolute top-1 right-1 rounded-full bg-black/60 text-white p-0.5 hover:bg-black/80 transition-colors"
@@ -220,15 +317,19 @@ export function ItemDetailPage() {
         </div>
       ) : photos.length > 0 ? (
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {photos.map((photo) => (
-            <div key={photo.id} className="shrink-0 w-40 h-28 rounded-lg overflow-hidden bg-muted opacity-70">
+          {photos.map((photo, idx) => (
+            <div
+              key={photo.id}
+              className="shrink-0 w-40 h-28 rounded-lg overflow-hidden bg-muted opacity-70 cursor-zoom-in"
+              onClick={() => setLightboxIndex(idx)}
+            >
               <img src={photo.url} alt="" className="w-full h-full object-cover" />
             </div>
           ))}
         </div>
       ) : null}
 
-      {/* Item header */}
+      {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold">{item.name}</h1>
@@ -401,6 +502,15 @@ export function ItemDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Photo lightbox */}
+      {lightboxIndex !== null && (
+        <Lightbox
+          photos={photos}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
     </div>
   )

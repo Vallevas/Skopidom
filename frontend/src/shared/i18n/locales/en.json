@@ -65,7 +65,9 @@
     "item_not_found": "Item not found",
     "enter_manually": "Enter manually",
     "manual_barcode": "Barcode",
-    "scan": "Scan"
+    "scan": "Scan",
+    "create_item": "Create item",
+    "scan_again": "Scan again"
   },
   "users": {
     "title": "Users",
