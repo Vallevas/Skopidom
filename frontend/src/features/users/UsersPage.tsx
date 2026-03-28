@@ -47,38 +47,41 @@ export function UsersPage() {
         <p className="text-muted-foreground text-center py-8">{t('common.loading')}</p>
       ) : (
         <div className="space-y-2">
-          {users.map((u) => (
-            <div
-              key={u.id}
-              className="flex items-center justify-between rounded-lg border bg-card px-4 py-3"
-            >
-              <div>
-                <p className="text-sm font-medium">{u.full_name}</p>
-                <p className="text-xs text-muted-foreground">{u.email}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs rounded-full bg-secondary px-2 py-0.5">
-                  {u.role === 'admin' ? t('users.role_admin') : t('users.role_editor')}
-                </span>
-                {u.id !== me?.id && (
-                  <>
-                    <button
-                      onClick={() => { setEditing(u); setFormOpen(true) }}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <Pencil size={15} />
-                    </button>
+          {users.map((u) => {
+            const isSelf = u.id === me?.id
+            return (
+              <div
+                key={u.id}
+                className="flex items-center justify-between rounded-lg border bg-card px-4 py-3"
+              >
+                <div>
+                  <p className="text-sm font-medium">{u.full_name}</p>
+                  <p className="text-xs text-muted-foreground">{u.email}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs rounded-full bg-secondary px-2 py-0.5">
+                    {u.role === 'admin' ? t('users.role_admin') : t('users.role_editor')}
+                  </span>
+                  {/* Edit is available for everyone including self */}
+                  <button
+                    onClick={() => { setEditing(u); setFormOpen(true) }}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  {/* Delete is hidden for self — backend also guards against it */}
+                  {!isSelf && (
                     <button
                       onClick={() => setConfirmDelete(u)}
                       className="text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <Trash2 size={15} />
                     </button>
-                  </>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

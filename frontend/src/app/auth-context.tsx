@@ -8,6 +8,8 @@ import {
 import { tokenStorage } from '@/shared/api/client'
 import type { User } from '@/shared/api/types'
 
+const USER_KEY = 'skopidom_user'
+
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
@@ -17,15 +19,14 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null)
 
-// Parse user from existing token on page load.
+// Read the full user object saved on login.
+// JWT payload only carries uid + role, not full_name / email,
+// so parsing the token on page load results in an incomplete user object.
 function getStoredUser(): User | null {
-  const token = tokenStorage.get()
-  if (!token) return null
+  const raw = localStorage.getItem(USER_KEY)
+  if (!raw) return null
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    // Token carries uid and role — stored user is hydrated on first API call.
-    // We keep a minimal object to avoid a round-trip on refresh.
-    return payload as User
+    return JSON.parse(raw) as User
   } catch {
     return null
   }
@@ -36,11 +37,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback((token: string, user: User) => {
     tokenStorage.set(token)
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
     setUser(user)
   }, [])
 
   const logout = useCallback(() => {
     tokenStorage.clear()
+    localStorage.removeItem(USER_KEY)
     setUser(null)
   }, [])
 
