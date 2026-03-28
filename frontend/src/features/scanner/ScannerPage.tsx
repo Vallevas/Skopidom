@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library'
-import { itemsApi, ApiClientError } from '@/shared/api/client'
+import { itemsApi, categoriesApi, buildingsApi, ApiClientError } from '@/shared/api/client'
+import { CreateItemDialog } from '@/features/items/CreateItemDialog'
 
 type ScanState =
   | { status: 'idle' }
@@ -19,25 +21,23 @@ export function ScannerPage() {
   const [state, setState] = useState<ScanState>({ status: 'idle' })
   const [manual, setManual] = useState('')
   const [showManual, setShowManual] = useState(false)
+  const [shouldScan, setShouldScan] = useState(true)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [scannedBarcode, setScannedBarcode] = useState('')
 
-  const handleBarcode = useCallback(
-    async (barcode: string) => {
-      setState({ status: 'found', barcode })
-      try {
-        const item = await itemsApi.getByBarcode(barcode)
-        navigate(`/items/${item.id}`)
-      } catch (err) {
-        if (err instanceof ApiClientError && err.status === 404) {
-          setState({ status: 'not_found', barcode })
-        } else {
-          setState({ status: 'error', message: t('common.unknown_error') })
-        }
-      }
-    },
-    [navigate, t],
-  )
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: categoriesApi.list,
+  })
+
+  const { data: buildings = [] } = useQuery({
+    queryKey: ['buildings'],
+    queryFn: buildingsApi.list,
+  })
 
   useEffect(() => {
+    if (!shouldScan) return
+
     const reader = new BrowserMultiFormatReader()
     readerRef.current = reader
 
@@ -46,13 +46,23 @@ export function ScannerPage() {
       try {
         setState({ status: 'scanning' })
         await reader.decodeFromVideoDevice(
-          // ZXing expects string | null, not undefined
           null,
           videoRef.current,
-          (result, err) => {
+          async (result, err) => {
             if (result) {
-              reader.reset()
-              handleBarcode(result.getText())
+              const barcode = result.getText()
+              setState({ status: 'found', barcode })
+              
+              try {
+                const item = await itemsApi.getByBarcode(barcode)
+                navigate(`/items/${item.id}`)
+              } catch (err) {
+                if (err instanceof ApiClientError && err.status === 404) {
+                  setState({ status: 'not_found', barcode })
+                } else {
+                  setState({ status: 'error', message: t('common.unknown_error') })
+                }
+              }
             }
             if (err && !(err instanceof NotFoundException)) {
               console.error('ZXing error:', err)
@@ -65,20 +75,50 @@ export function ScannerPage() {
     }
 
     startScanner()
-    return () => { reader.reset() }
-  }, [handleBarcode, t])
+    return () => { 
+      reader.reset()
+    }
+  }, [shouldScan, navigate, t])
 
   function handleManualSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (manual.trim()) {
+      setShouldScan(false)
       readerRef.current?.reset()
-      handleBarcode(manual.trim())
+      
+      const barcode = manual.trim()
+      setState({ status: 'found', barcode })
+      
+      itemsApi.getByBarcode(barcode)
+        .then(item => navigate(`/items/${item.id}`))
+        .catch(err => {
+          if (err instanceof ApiClientError && err.status === 404) {
+            setState({ status: 'not_found', barcode })
+          } else {
+            setState({ status: 'error', message: t('common.unknown_error') })
+          }
+        })
     }
   }
 
   function handleReset() {
-    setState({ status: 'scanning' })
+    setState({ status: 'idle' })
     setManual('')
+    setShouldScan(false)
+    setTimeout(() => setShouldScan(true), 100)
+  }
+
+  function handleCreateItem() {
+    if (state.status === 'not_found') {
+      setScannedBarcode(state.barcode)
+      setCreateDialogOpen(true)
+    }
+  }
+
+  function handleCreateDialogClose() {
+    setCreateDialogOpen(false)
+    setScannedBarcode('')
+    handleReset()
   }
 
   return (
@@ -120,12 +160,20 @@ export function ScannerPage() {
               <>
                 <p className="text-lg font-medium text-red-400">{t('scanner.item_not_found')}</p>
                 <p className="text-sm text-white/70 mt-1 font-mono">{state.barcode}</p>
-                <button
-                  onClick={handleReset}
-                  className="mt-4 rounded-md bg-white/20 px-4 py-2 text-sm hover:bg-white/30 transition-colors"
-                >
-                  {t('scanner.scan')}
-                </button>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={handleCreateItem}
+                    className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    {t('scanner.create_item')}
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    className="rounded-md bg-white/20 px-4 py-2 text-sm hover:bg-white/30 transition-colors"
+                  >
+                    {t('scanner.scan_again')}
+                  </button>
+                </div>
               </>
             )}
             {state.status === 'error' && (
@@ -170,6 +218,14 @@ export function ScannerPage() {
           </form>
         )}
       </div>
+
+      <CreateItemDialog
+        open={createDialogOpen}
+        onClose={handleCreateDialogClose}
+        categories={categories}
+        buildings={buildings}
+        initialBarcode={scannedBarcode}
+      />
     </div>
   )
 }
