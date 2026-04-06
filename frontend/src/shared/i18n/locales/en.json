@@ -21,14 +21,15 @@
   "items": {
     "title": "Items",
     "add": "Add item",
-    "search": "Search by name or barcode",
+    "search": "Search by name or serial number",
     "all_categories": "All categories",
     "all_buildings": "All buildings",
     "all_rooms": "All rooms",
     "status_active": "Active",
     "status_in_repair": "In repair",
     "status_disposed": "Disposed",
-    "barcode": "Barcode",
+    "barcode": "Serial number",
+    "inventory_number": "Inventory number",
     "name": "Name",
     "category": "Category",
     "building": "Building",
@@ -58,13 +59,13 @@
     "moved": "Item moved"
   },
   "scanner": {
-    "title": "Barcode Scanner",
+    "title": "Serial Number Scanner",
     "instruction": "Point the camera at a barcode",
     "camera_error": "Camera access error",
     "item_found": "Item found",
     "item_not_found": "Item not found",
     "enter_manually": "Enter manually",
-    "manual_barcode": "Barcode",
+    "manual_barcode": "Serial number",
     "scan": "Scan",
     "create_item": "Create item",
     "scan_again": "Scan again"

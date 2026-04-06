@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Skopidom", "tagline": "Учёт инвентаря" },
+  "app": {
+    "name": "Skopidom",
+    "tagline": "Учёт инвентаря"
+  },
   "nav": {
     "items": "Предметы",
     "scanner": "Сканер",
@@ -18,14 +21,15 @@
   "items": {
     "title": "Предметы",
     "add": "Добавить предмет",
-    "search": "Поиск по названию или штрих-коду",
+    "search": "Поиск по названию или серийному номеру",
     "all_categories": "Все категории",
     "all_buildings": "Все здания",
     "all_rooms": "Все комнаты",
     "status_active": "Активные",
     "status_in_repair": "В ремонте",
     "status_disposed": "Списанные",
-    "barcode": "Штрих-код",
+    "barcode": "Серийный номер",
+    "inventory_number": "Инвентарный номер",
     "name": "Название",
     "category": "Категория",
     "building": "Здание",
@@ -55,13 +59,13 @@
     "moved": "Предмет перемещён"
   },
   "scanner": {
-    "title": "Сканер штрих-кода",
+    "title": "Сканер серийного номера",
     "instruction": "Наведите камеру на штрих-код",
     "camera_error": "Ошибка доступа к камере",
     "item_found": "Предмет найден",
     "item_not_found": "Предмет не найден",
     "enter_manually": "Ввести вручную",
-    "manual_barcode": "Штрих-код",
+    "manual_barcode": "Серийный номер",
     "scan": "Сканировать",
     "create_item": "Создать предмет",
     "scan_again": "Сканировать снова"

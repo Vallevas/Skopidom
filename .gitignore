@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+backend/bin/
 
 # Test binary, built with `go test -c`
 *.test
@@ -22,12 +23,21 @@ frontend/node_modules
 curl_tests/
 skopidom_file_structure.txt
 
+# local testing
+*-key.pem
+*.pem
+vite.config.ts
+tsconfig.tsbuildinfo
+frontend/dist/
+frontend/ssl/
+
 # Go workspace file
 go.work
 go.work.sum
 
 # Dev storage
 backend/uploads/
+frontend/dist/
 
 # env file
 .env

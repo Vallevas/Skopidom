@@ -19,8 +19,9 @@ const (
 type Item struct {
 	ID uint64 `json:"id"`
 
-	Barcode string `json:"barcode"`
-	Name    string `json:"name"`
+	Barcode         string `json:"barcode"`
+	InventoryNumber string `json:"inventory_number"`
+	Name            string `json:"name"`
 
 	CategoryID uint64    `json:"category_id"`
 	Category   *Category `json:"category,omitempty"`

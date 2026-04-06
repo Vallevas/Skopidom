@@ -9,6 +9,7 @@ import type { Building, Category } from '@/shared/api/types'
 
 const schema = z.object({
   barcode: z.string().min(1),
+  inventory_number: z.string().min(1),
   name: z.string().min(1),
   category_id: z.coerce.number().min(1),
   building_id: z.coerce.number().min(1),
@@ -83,7 +84,11 @@ export function CreateItemDialog({ open, onClose, categories, buildings, initial
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
             <Field label={t('items.barcode')} error={!!errors.barcode}>
-              <input className={inputCls} {...register('barcode')} placeholder="INV-2024-001" />
+              <input className={inputCls} {...register('barcode')} placeholder="SN-2024-001" />
+            </Field>
+
+            <Field label={t('items.inventory_number')} error={!!errors.inventory_number}>
+              <input className={inputCls} {...register('inventory_number')} placeholder="INV-2024-001" />
             </Field>
 
             <Field label={t('items.name')} error={!!errors.name}>

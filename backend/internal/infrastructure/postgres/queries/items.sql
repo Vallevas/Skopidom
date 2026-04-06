@@ -22,11 +22,11 @@ ORDER BY created_at DESC;
 
 -- name: CreateItem :one
 INSERT INTO items (
-    barcode, name, category_id, room_id,
+    barcode, inventory_number, name, category_id, room_id,
     description, status,
     created_by, last_edited_by
 )
-VALUES ($1, $2, $3, $4, $5, 'active', $6, $6)
+VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, $7)
 RETURNING id, created_at, updated_at;
 
 -- name: UpdateItem :exec
@@ -61,4 +61,9 @@ WHERE id = $3;
 -- name: BarcodeExists :one
 SELECT EXISTS(
     SELECT 1 FROM items WHERE barcode = $1
+) AS exists;
+
+-- name: InventoryNumberExists :one
+SELECT EXISTS(
+    SELECT 1 FROM items WHERE inventory_number = $1
 ) AS exists;

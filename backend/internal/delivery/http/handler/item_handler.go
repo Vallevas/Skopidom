@@ -26,11 +26,12 @@ func NewItemHandler(uc itemUC.UseCase) *ItemHandler {
 // ── Request / Response types ──────────────────────────────────────────────────
 
 type createItemRequest struct {
-	Barcode     string `json:"barcode"`
-	Name        string `json:"name"`
-	CategoryID  uint64 `json:"category_id"`
-	RoomID      uint64 `json:"room_id"`
-	Description string `json:"description"`
+	Barcode         string `json:"barcode"`
+	InventoryNumber string `json:"inventory_number"`
+	Name            string `json:"name"`
+	CategoryID      uint64 `json:"category_id"`
+	RoomID          uint64 `json:"room_id"`
+	Description     string `json:"description"`
 }
 
 type updateItemRequest struct {
@@ -54,12 +55,13 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	actorID := middleware.UserIDFromCtx(r.Context())
 	item, err := h.uc.Create(r.Context(), itemUC.CreateInput{
-		Barcode:     req.Barcode,
-		Name:        req.Name,
-		CategoryID:  req.CategoryID,
-		RoomID:      req.RoomID,
-		Description: req.Description,
-		ActorID:     actorID,
+		Barcode:         req.Barcode,
+		InventoryNumber: req.InventoryNumber,
+		Name:            req.Name,
+		CategoryID:      req.CategoryID,
+		RoomID:          req.RoomID,
+		Description:     req.Description,
+		ActorID:         actorID,
 	})
 	if err != nil {
 		handleError(w, err)

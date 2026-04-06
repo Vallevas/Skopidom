@@ -23,6 +23,14 @@ func (uc *itemUseCase) Create(ctx context.Context, input CreateInput) (*entity.I
 		return nil, fmt.Errorf("barcode %q: %w", input.Barcode, logger.ErrAlreadyExists)
 	}
 
+	invExists, err := uc.items.InventoryNumberExists(ctx, input.InventoryNumber)
+	if err != nil {
+		return nil, fmt.Errorf("item.Create inventoryNumberExists: %w", err)
+	}
+	if invExists {
+		return nil, fmt.Errorf("inventory_number %q: %w", input.InventoryNumber, logger.ErrAlreadyExists)
+	}
+
 	if _, err := uc.categories.GetByID(ctx, input.CategoryID); err != nil {
 		return nil, fmt.Errorf("item.Create category: %w", err)
 	}
@@ -32,14 +40,15 @@ func (uc *itemUseCase) Create(ctx context.Context, input CreateInput) (*entity.I
 	}
 
 	item := &entity.Item{
-		Barcode:      input.Barcode,
-		Name:         input.Name,
-		CategoryID:   input.CategoryID,
-		RoomID:       input.RoomID,
-		Description:  input.Description,
-		Status:       entity.StatusActive,
-		CreatedBy:    input.ActorID,
-		LastEditedBy: input.ActorID,
+		Barcode:         input.Barcode,
+		InventoryNumber: input.InventoryNumber,
+		Name:            input.Name,
+		CategoryID:      input.CategoryID,
+		RoomID:          input.RoomID,
+		Description:     input.Description,
+		Status:          entity.StatusActive,
+		CreatedBy:       input.ActorID,
+		LastEditedBy:    input.ActorID,
 	}
 
 	if err := uc.items.Create(ctx, item); err != nil {
@@ -59,6 +68,9 @@ func (uc *itemUseCase) Create(ctx context.Context, input CreateInput) (*entity.I
 func validateCreateInput(input CreateInput) error {
 	if input.Barcode == "" {
 		return fmt.Errorf("barcode is required: %w", logger.ErrInvalidInput)
+	}
+	if input.InventoryNumber == "" {
+		return fmt.Errorf("inventory_number is required: %w", logger.ErrInvalidInput)
 	}
 	if input.Name == "" {
 		return fmt.Errorf("name is required: %w", logger.ErrInvalidInput)

@@ -26,21 +26,22 @@ func (q *Queries) BarcodeExists(ctx context.Context, barcode string) (bool, erro
 
 const createItem = `-- name: CreateItem :one
 INSERT INTO items (
-    barcode, name, category_id, room_id,
+    barcode, inventory_number, name, category_id, room_id,
     description, status,
     created_by, last_edited_by
 )
-VALUES ($1, $2, $3, $4, $5, 'active', $6, $6)
+VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, $7)
 RETURNING id, created_at, updated_at
 `
 
 type CreateItemParams struct {
-	Barcode     string `json:"barcode"`
-	Name        string `json:"name"`
-	CategoryID  int64  `json:"category_id"`
-	RoomID      int64  `json:"room_id"`
-	Description string `json:"description"`
-	CreatedBy   int64  `json:"created_by"`
+	Barcode         string `json:"barcode"`
+	InventoryNumber string `json:"inventory_number"`
+	Name            string `json:"name"`
+	CategoryID      int64  `json:"category_id"`
+	RoomID          int64  `json:"room_id"`
+	Description     string `json:"description"`
+	CreatedBy       int64  `json:"created_by"`
 }
 
 type CreateItemRow struct {
@@ -52,6 +53,7 @@ type CreateItemRow struct {
 func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (CreateItemRow, error) {
 	row := q.db.QueryRowContext(ctx, createItem,
 		arg.Barcode,
+		arg.InventoryNumber,
 		arg.Name,
 		arg.CategoryID,
 		arg.RoomID,
@@ -64,7 +66,7 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (CreateI
 }
 
 const getItemByBarcode = `-- name: GetItemByBarcode :one
-SELECT id, barcode, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
+SELECT id, barcode, inventory_number, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
 WHERE barcode = $1
 `
 
@@ -74,6 +76,7 @@ func (q *Queries) GetItemByBarcode(ctx context.Context, barcode string) (ItemDet
 	err := row.Scan(
 		&i.ID,
 		&i.Barcode,
+		&i.InventoryNumber,
 		&i.Name,
 		&i.CategoryID,
 		&i.CategoryName,
@@ -105,7 +108,7 @@ func (q *Queries) GetItemByBarcode(ctx context.Context, barcode string) (ItemDet
 
 const getItemByID = `-- name: GetItemByID :one
 
-SELECT id, barcode, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
+SELECT id, barcode, inventory_number, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
 WHERE id = $1
 `
 
@@ -118,6 +121,7 @@ func (q *Queries) GetItemByID(ctx context.Context, id int64) (ItemDetail, error)
 	err := row.Scan(
 		&i.ID,
 		&i.Barcode,
+		&i.InventoryNumber,
 		&i.Name,
 		&i.CategoryID,
 		&i.CategoryName,
@@ -147,8 +151,21 @@ func (q *Queries) GetItemByID(ctx context.Context, id int64) (ItemDetail, error)
 	return i, err
 }
 
+const inventoryNumberExists = `-- name: InventoryNumberExists :one
+SELECT EXISTS(
+    SELECT 1 FROM items WHERE inventory_number = $1
+) AS exists
+`
+
+func (q *Queries) InventoryNumberExists(ctx context.Context, inventoryNumber string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, inventoryNumberExists, inventoryNumber)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const listItems = `-- name: ListItems :many
-SELECT id, barcode, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
+SELECT id, barcode, inventory_number, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
 WHERE
     ($1::bigint IS NULL OR category_id = $1) AND
     ($2::bigint     IS NULL OR room_id     = $2)     AND
@@ -184,6 +201,7 @@ func (q *Queries) ListItems(ctx context.Context, arg ListItemsParams) ([]ItemDet
 		if err := rows.Scan(
 			&i.ID,
 			&i.Barcode,
+			&i.InventoryNumber,
 			&i.Name,
 			&i.CategoryID,
 			&i.CategoryName,

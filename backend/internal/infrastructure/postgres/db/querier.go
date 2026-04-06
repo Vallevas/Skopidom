@@ -44,6 +44,7 @@ type Querier interface {
 	GetRoomByID(ctx context.Context, id int64) (GetRoomByIDRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
+	InventoryNumberExists(ctx context.Context, inventoryNumber string) (bool, error)
 	ListAuditEventsByItem(ctx context.Context, itemID int64) ([]ListAuditEventsByItemRow, error)
 	ListBuildings(ctx context.Context) ([]Building, error)
 	ListCategories(ctx context.Context) ([]Category, error)

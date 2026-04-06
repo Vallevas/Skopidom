@@ -31,12 +31,13 @@ type UseCase interface {
 
 // CreateInput holds the data required to register a new inventory item.
 type CreateInput struct {
-	Barcode     string
-	Name        string
-	CategoryID  uint64
-	RoomID      uint64
-	Description string
-	ActorID     uint64
+	Barcode         string
+	InventoryNumber string
+	Name            string
+	CategoryID      uint64
+	RoomID          uint64
+	Description     string
+	ActorID         uint64
 }
 
 // UpdateInput holds the data allowed to be changed after creation.

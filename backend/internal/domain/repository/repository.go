@@ -27,6 +27,7 @@ type ItemRepository interface {
 	UpdateStatus(ctx context.Context, item *entity.Item) error
 	UpdateTxHash(ctx context.Context, id uint64, txHash string) error
 	BarcodeExists(ctx context.Context, barcode string) (bool, error)
+	InventoryNumberExists(ctx context.Context, inventoryNumber string) (bool, error)
 	// MoveToRoom changes the room of an item and records the actor.
 	MoveToRoom(ctx context.Context, itemID uint64, roomID uint64, actorID uint64) error
 }

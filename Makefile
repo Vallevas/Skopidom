@@ -65,12 +65,12 @@ down: ## Stop all services
 reset: ## Stop all services and wipe volumes (full reset)
 	$(DOCKER_COMPOSE) down -v
 
-.PHONY: db-up
-db-up: ## Start only postgres
+.PHONY: dbup
+dbup: ## Start only postgres
 	$(DOCKER_COMPOSE) up postgres -d
 
-.PHONY: db-down
-db-down: ## Stop only postgres
+.PHONY: dbdown
+dbdown: ## Stop only postgres
 	$(DOCKER_COMPOSE) stop postgres
 
 .PHONY: logs
@@ -87,8 +87,8 @@ logs-backend: ## Follow backend logs only
 psql: ## Open psql shell in the running postgres container
 	sudo docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME)
 
-.PHONY: create-admin
-create-admin: ## Insert a default admin user (password: password)
+.PHONY: createadmin
+createadmin: ## Insert a default admin user (password: password)
 	sudo docker exec -i $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "INSERT INTO users (full_name, email, password_hash, role) VALUES ('Администратор', 'admin@university.ru', '\$$2a\$$12\$$iB.8j9wRbmfza6qfuGTBn.l2dCkBc9ojVcIWnZi80nDM4bwO0RhEy', 'admin') ON CONFLICT (email) DO NOTHING;"
 
 # ── Help ──────────────────────────────────────────────────────────────────────

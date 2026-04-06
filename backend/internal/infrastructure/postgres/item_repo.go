@@ -30,12 +30,13 @@ func NewItemRepo(pool *pgxpool.Pool) *ItemRepo {
 // Create inserts a new item row and populates the generated ID and timestamps.
 func (r *ItemRepo) Create(ctx context.Context, item *entity.Item) error {
 	row, err := r.queries.CreateItem(ctx, db.CreateItemParams{
-		Barcode:     item.Barcode,
-		Name:        item.Name,
-		CategoryID:  int64(item.CategoryID),
-		RoomID:      int64(item.RoomID),
-		Description: item.Description,
-		CreatedBy:   int64(item.CreatedBy),
+		Barcode:         item.Barcode,
+		InventoryNumber: item.InventoryNumber,
+		Name:            item.Name,
+		CategoryID:      int64(item.CategoryID),
+		RoomID:          int64(item.RoomID),
+		Description:     item.Description,
+		CreatedBy:       int64(item.CreatedBy),
 	})
 	if err != nil {
 		return fmt.Errorf("ItemRepo.Create: %w", err)
@@ -138,6 +139,15 @@ func (r *ItemRepo) BarcodeExists(ctx context.Context, barcode string) (bool, err
 	return exists, nil
 }
 
+// InventoryNumberExists reports whether the given inventory number is already in use.
+func (r *ItemRepo) InventoryNumberExists(ctx context.Context, inventoryNumber string) (bool, error) {
+	exists, err := r.queries.InventoryNumberExists(ctx, inventoryNumber)
+	if err != nil {
+		return false, fmt.Errorf("ItemRepo.InventoryNumberExists: %w", err)
+	}
+	return exists, nil
+}
+
 // MoveToRoom changes the room of an item.
 func (r *ItemRepo) MoveToRoom(ctx context.Context, itemID, roomID, actorID uint64) error {
 	err := r.queries.MoveItemToRoom(ctx, db.MoveItemToRoomParams{
@@ -157,9 +167,10 @@ func (r *ItemRepo) MoveToRoom(ctx context.Context, itemID, roomID, actorID uint6
 // This is the single place where the DB representation maps to domain types.
 func mapItemDetail(row db.ItemDetail) *entity.Item {
 	return &entity.Item{
-		ID:      uint64(row.ID),
-		Barcode: row.Barcode,
-		Name:    row.Name,
+		ID:              uint64(row.ID),
+		Barcode:         row.Barcode,
+		InventoryNumber: row.InventoryNumber,
+		Name:            row.Name,
 
 		CategoryID: uint64(row.CategoryID),
 		Category: &entity.Category{
