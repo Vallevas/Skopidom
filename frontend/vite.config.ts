@@ -1,4 +1,5 @@
 import path from 'path'
+import fs from 'fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -51,6 +52,13 @@ export default defineConfig({
     },
   },
   server: {
+    https: {
+      key: fs.readFileSync('./ssl/192.168.1.200-key.pem'),
+      cert: fs.readFileSync('./ssl/192.168.1.200.pem'),
+      // key: fs.readFileSync('./ssl/10.112.252.76-key.pem'),
+      // cert: fs.readFileSync('./ssl/10.112.252.76.pem'),
+    },
+    host: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

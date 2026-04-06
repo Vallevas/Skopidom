@@ -31,23 +31,25 @@ type Category struct {
 }
 
 type Item struct {
-	ID           int64     `json:"id"`
-	Barcode      string    `json:"barcode"`
-	Name         string    `json:"name"`
-	CategoryID   int64     `json:"category_id"`
-	RoomID       int64     `json:"room_id"`
-	Description  string    `json:"description"`
-	Status       string    `json:"status"`
-	TxHash       string    `json:"tx_hash"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
-	CreatedBy    int64     `json:"created_by"`
-	LastEditedBy int64     `json:"last_edited_by"`
+	ID              int64     `json:"id"`
+	Barcode         string    `json:"barcode"`
+	Name            string    `json:"name"`
+	CategoryID      int64     `json:"category_id"`
+	RoomID          int64     `json:"room_id"`
+	Description     string    `json:"description"`
+	Status          string    `json:"status"`
+	TxHash          string    `json:"tx_hash"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	CreatedBy       int64     `json:"created_by"`
+	LastEditedBy    int64     `json:"last_edited_by"`
+	InventoryNumber string    `json:"inventory_number"`
 }
 
 type ItemDetail struct {
 	ID               int64     `json:"id"`
 	Barcode          string    `json:"barcode"`
+	InventoryNumber  string    `json:"inventory_number"`
 	Name             string    `json:"name"`
 	CategoryID       int64     `json:"category_id"`
 	CategoryName     string    `json:"category_name"`

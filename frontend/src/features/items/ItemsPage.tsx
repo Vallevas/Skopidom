@@ -42,12 +42,25 @@ export function ItemsPage() {
   }
 
   const filtered = items.filter((item) => {
-    if (!search) return true
-    const q = search.toLowerCase()
-    return (
-      item.name.toLowerCase().includes(q) ||
-      item.barcode.toLowerCase().includes(q)
-    )
+    // Search filter
+    if (search) {
+      const q = search.toLowerCase()
+      if (
+        !item.name.toLowerCase().includes(q) &&
+        !item.barcode.toLowerCase().includes(q)
+      ) {
+        return false
+      }
+    }
+    
+    // Building filter (when building selected but no specific room)
+    if (selectedBuildingId && !filter.room_id) {
+      if (item.room?.building_id !== selectedBuildingId) {
+        return false
+      }
+    }
+    
+    return true
   })
 
   return (

@@ -39,6 +39,7 @@ export interface ItemPhoto {
 export interface Item {
   id: number
   barcode: string
+  inventory_number: string
   name: string
   category_id: number
   category?: Category
@@ -97,6 +98,7 @@ export interface LoginResponse {
 
 export interface CreateItemRequest {
   barcode: string
+  inventory_number: string
   name: string
   category_id: number
   room_id: number

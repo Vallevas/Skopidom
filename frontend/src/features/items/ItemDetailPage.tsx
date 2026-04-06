@@ -333,7 +333,14 @@ export function ItemDetailPage() {
       <div className="flex items-start justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold">{item.name}</h1>
-          <p className="text-sm text-muted-foreground font-mono">{item.barcode}</p>
+          <div className="mt-1 space-y-0.5">
+            <p className="text-xs text-muted-foreground">{t('items.barcode')}</p>
+            <p className="text-sm font-mono">{item.barcode}</p>
+          </div>
+          <div className="mt-1 space-y-0.5">
+            <p className="text-xs text-muted-foreground">{t('items.inventory_number')}</p>
+            <p className="text-sm font-mono">{item.inventory_number}</p>
+          </div>
         </div>
         {statusBadge && (
           <span className={cn('rounded-full text-xs px-2 py-0.5 shrink-0', statusBadge.cls)}>
