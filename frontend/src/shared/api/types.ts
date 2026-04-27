@@ -27,7 +27,7 @@ export interface Room {
   building?: Building
 }
 
-export type ItemStatus = 'active' | 'in_repair' | 'disposed'
+export type ItemStatus = 'active' | 'in_repair' | 'pending_disposal' | 'disposed'
 
 export interface ItemPhoto {
   id: number
@@ -50,6 +50,8 @@ export interface Item {
   tx_hash?: string
   created_at: string
   updated_at: string
+  pending_disposal_at?: string
+  disposed_at?: string
   created_by: number
   last_edited_by: number
   creator?: User
@@ -64,6 +66,8 @@ export type AuditAction =
   | 'moved'
   | 'sent_to_repair'
   | 'returned_from_repair'
+  | 'pending_disposal'
+  | 'disposal_finalized'
 
 // MovePayload is embedded in AuditEvent.payload when action === 'moved'.
 export interface MovePayload {
@@ -131,6 +135,16 @@ export interface CreateUserRequest {
 export interface UpdateUserRequest {
   full_name?: string
   role?: UserRole
+}
+
+export interface DisposalDocument {
+  id: number
+  item_id: number
+  filename: string
+  url: string
+  uploaded_at: string
+  uploaded_by: number
+  uploader?: User
 }
 
 export interface ApiError {

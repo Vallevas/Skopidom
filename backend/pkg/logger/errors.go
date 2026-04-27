@@ -22,4 +22,21 @@ var (
 
 	// ErrUnauthorized is returned when a request is not authenticated.
 	ErrUnauthorized = errors.New("unauthorized")
+
+	// ErrConflict is returned when a delete operation would violate referential integrity.
+	ErrConflict = errors.New("conflict")
 )
+
+// BusinessError represents a domain-level validation or business rule violation.
+type BusinessError struct {
+	Message string
+}
+
+func (e *BusinessError) Error() string {
+	return e.Message
+}
+
+// NewBusinessError creates a new business error with the given message.
+func NewBusinessError(message string) error {
+	return &BusinessError{Message: message}
+}

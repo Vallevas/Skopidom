@@ -5,6 +5,7 @@
 package db
 
 import (
+	"database/sql"
 	"encoding/json"
 	"time"
 )
@@ -30,51 +31,64 @@ type Category struct {
 	Name string `json:"name"`
 }
 
+type DisposalDocument struct {
+	ID         int64     `json:"id"`
+	ItemID     int64     `json:"item_id"`
+	Filename   string    `json:"filename"`
+	Url        string    `json:"url"`
+	UploadedAt time.Time `json:"uploaded_at"`
+	UploadedBy int64     `json:"uploaded_by"`
+}
+
 type Item struct {
-	ID              int64     `json:"id"`
-	Barcode         string    `json:"barcode"`
-	Name            string    `json:"name"`
-	CategoryID      int64     `json:"category_id"`
-	RoomID          int64     `json:"room_id"`
-	Description     string    `json:"description"`
-	Status          string    `json:"status"`
-	TxHash          string    `json:"tx_hash"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
-	CreatedBy       int64     `json:"created_by"`
-	LastEditedBy    int64     `json:"last_edited_by"`
-	InventoryNumber string    `json:"inventory_number"`
+	ID                int64        `json:"id"`
+	Barcode           string       `json:"barcode"`
+	Name              string       `json:"name"`
+	CategoryID        int64        `json:"category_id"`
+	RoomID            int64        `json:"room_id"`
+	Description       string       `json:"description"`
+	Status            string       `json:"status"`
+	TxHash            string       `json:"tx_hash"`
+	CreatedAt         time.Time    `json:"created_at"`
+	UpdatedAt         time.Time    `json:"updated_at"`
+	CreatedBy         int64        `json:"created_by"`
+	LastEditedBy      int64        `json:"last_edited_by"`
+	InventoryNumber   string       `json:"inventory_number"`
+	PendingDisposalAt sql.NullTime `json:"pending_disposal_at"`
+	DisposedAt        sql.NullTime `json:"disposed_at"`
 }
 
 type ItemDetail struct {
-	ID               int64     `json:"id"`
-	Barcode          string    `json:"barcode"`
-	InventoryNumber  string    `json:"inventory_number"`
-	Name             string    `json:"name"`
-	CategoryID       int64     `json:"category_id"`
-	CategoryName     string    `json:"category_name"`
-	RoomID           int64     `json:"room_id"`
-	RoomName         string    `json:"room_name"`
-	BuildingID       int64     `json:"building_id"`
-	BuildingName     string    `json:"building_name"`
-	BuildingAddress  string    `json:"building_address"`
-	Description      string    `json:"description"`
-	Status           string    `json:"status"`
-	TxHash           string    `json:"tx_hash"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
-	CreatedBy        int64     `json:"created_by"`
-	CreatorFullName  string    `json:"creator_full_name"`
-	CreatorEmail     string    `json:"creator_email"`
-	CreatorRole      string    `json:"creator_role"`
-	CreatorCreatedAt time.Time `json:"creator_created_at"`
-	CreatorUpdatedAt time.Time `json:"creator_updated_at"`
-	LastEditedBy     int64     `json:"last_edited_by"`
-	EditorFullName   string    `json:"editor_full_name"`
-	EditorEmail      string    `json:"editor_email"`
-	EditorRole       string    `json:"editor_role"`
-	EditorCreatedAt  time.Time `json:"editor_created_at"`
-	EditorUpdatedAt  time.Time `json:"editor_updated_at"`
+	ID                int64        `json:"id"`
+	Barcode           string       `json:"barcode"`
+	InventoryNumber   string       `json:"inventory_number"`
+	Name              string       `json:"name"`
+	CategoryID        int64        `json:"category_id"`
+	CategoryName      string       `json:"category_name"`
+	RoomID            int64        `json:"room_id"`
+	RoomName          string       `json:"room_name"`
+	BuildingID        int64        `json:"building_id"`
+	BuildingName      string       `json:"building_name"`
+	BuildingAddress   string       `json:"building_address"`
+	Description       string       `json:"description"`
+	Status            string       `json:"status"`
+	TxHash            string       `json:"tx_hash"`
+	CreatedAt         time.Time    `json:"created_at"`
+	UpdatedAt         time.Time    `json:"updated_at"`
+	PendingDisposalAt sql.NullTime `json:"pending_disposal_at"`
+	DisposedAt        sql.NullTime `json:"disposed_at"`
+	CreatedBy         int64        `json:"created_by"`
+	CreatorFullName   string       `json:"creator_full_name"`
+	CreatorEmail      string       `json:"creator_email"`
+	CreatorRole       string       `json:"creator_role"`
+	CreatorCreatedAt  time.Time    `json:"creator_created_at"`
+	CreatorUpdatedAt  time.Time    `json:"creator_updated_at"`
+	LastEditedBy      int64        `json:"last_edited_by"`
+	EditorFullName    string       `json:"editor_full_name"`
+	EditorEmail       string       `json:"editor_email"`
+	EditorRole        string       `json:"editor_role"`
+	EditorCreatedAt   time.Time    `json:"editor_created_at"`
+	EditorUpdatedAt   time.Time    `json:"editor_updated_at"`
 }
 
 type ItemPhoto struct {

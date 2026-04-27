@@ -14,7 +14,6 @@ import (
 type UseCase interface {
 	Create(ctx context.Context, input CreateInput) (*entity.Item, error)
 	Update(ctx context.Context, input UpdateInput) (*entity.Item, error)
-	Dispose(ctx context.Context, itemID uint64, actorID uint64) error
 	GetByID(ctx context.Context, id uint64) (*entity.Item, error)
 	GetByBarcode(ctx context.Context, barcode string) (*entity.Item, error)
 	List(ctx context.Context, filter repository.ItemFilter) ([]*entity.Item, error)
@@ -27,6 +26,13 @@ type UseCase interface {
 	// ToggleRepair switches an active item to in_repair and vice versa.
 	// Returns the updated item and the audit action that was recorded.
 	ToggleRepair(ctx context.Context, itemID uint64, actorID uint64) (*entity.Item, error)
+
+	// Disposal workflow methods.
+	InitiateDisposal(ctx context.Context, itemID uint64, actorID uint64) (*entity.Item, error)
+	UploadDisposalDocument(ctx context.Context, itemID uint64, filename string, url string, actorID uint64) (*entity.DisposalDocument, error)
+	ListDisposalDocuments(ctx context.Context, itemID uint64) ([]*entity.DisposalDocument, error)
+	DeleteDisposalDocument(ctx context.Context, itemID uint64, docID uint64, actorID uint64) error
+	FinalizeDisposal(ctx context.Context, itemID uint64, actorID uint64) (*entity.Item, error)
 }
 
 // CreateInput holds the data required to register a new inventory item.
@@ -49,11 +55,12 @@ type UpdateInput struct {
 
 // itemUseCase is the concrete implementation of UseCase.
 type itemUseCase struct {
-	items      repository.ItemRepository
-	categories repository.CategoryRepository
-	rooms      repository.RoomRepository
-	photos     repository.PhotoRepository
-	audit      repository.AuditLogger
+	items        repository.ItemRepository
+	categories   repository.CategoryRepository
+	rooms        repository.RoomRepository
+	photos       repository.PhotoRepository
+	disposalDocs repository.DisposalDocumentRepository
+	audit        repository.AuditLogger
 }
 
 // New constructs an itemUseCase with all required repository dependencies.
@@ -62,14 +69,16 @@ func New(
 	categories repository.CategoryRepository,
 	rooms repository.RoomRepository,
 	photos repository.PhotoRepository,
+	disposalDocs repository.DisposalDocumentRepository,
 	audit repository.AuditLogger,
 ) UseCase {
 	return &itemUseCase{
-		items:      items,
-		categories: categories,
-		rooms:      rooms,
-		photos:     photos,
-		audit:      audit,
+		items:        items,
+		categories:   categories,
+		rooms:        rooms,
+		photos:       photos,
+		disposalDocs: disposalDocs,
+		audit:        audit,
 	}
 }
 

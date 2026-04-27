@@ -9,6 +9,39 @@ import (
 	"context"
 )
 
+const countItemsByCategory = `-- name: CountItemsByCategory :one
+SELECT COUNT(*) FROM items WHERE category_id = $1
+`
+
+func (q *Queries) CountItemsByCategory(ctx context.Context, categoryID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countItemsByCategory, categoryID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countItemsByRoom = `-- name: CountItemsByRoom :one
+SELECT COUNT(*) FROM items WHERE room_id = $1
+`
+
+func (q *Queries) CountItemsByRoom(ctx context.Context, roomID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countItemsByRoom, roomID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countRoomsByBuilding = `-- name: CountRoomsByBuilding :one
+SELECT COUNT(*) FROM rooms WHERE building_id = $1
+`
+
+func (q *Queries) CountRoomsByBuilding(ctx context.Context, buildingID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countRoomsByBuilding, buildingID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createBuilding = `-- name: CreateBuilding :one
 
 INSERT INTO buildings (name, address) VALUES ($1, $2) RETURNING id
@@ -99,12 +132,34 @@ func (q *Queries) GetBuildingByID(ctx context.Context, id int64) (Building, erro
 	return i, err
 }
 
+const getBuildingByName = `-- name: GetBuildingByName :one
+SELECT id, name, address FROM buildings WHERE name = $1
+`
+
+func (q *Queries) GetBuildingByName(ctx context.Context, name string) (Building, error) {
+	row := q.db.QueryRowContext(ctx, getBuildingByName, name)
+	var i Building
+	err := row.Scan(&i.ID, &i.Name, &i.Address)
+	return i, err
+}
+
 const getCategoryByID = `-- name: GetCategoryByID :one
 SELECT id, name FROM categories WHERE id = $1
 `
 
 func (q *Queries) GetCategoryByID(ctx context.Context, id int64) (Category, error) {
 	row := q.db.QueryRowContext(ctx, getCategoryByID, id)
+	var i Category
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const getCategoryByName = `-- name: GetCategoryByName :one
+SELECT id, name FROM categories WHERE name = $1
+`
+
+func (q *Queries) GetCategoryByName(ctx context.Context, name string) (Category, error) {
+	row := q.db.QueryRowContext(ctx, getCategoryByName, name)
 	var i Category
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
@@ -128,6 +183,39 @@ type GetRoomByIDRow struct {
 func (q *Queries) GetRoomByID(ctx context.Context, id int64) (GetRoomByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getRoomByID, id)
 	var i GetRoomByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.BuildingID,
+		&i.BuildingName,
+		&i.BuildingAddress,
+	)
+	return i, err
+}
+
+const getRoomByNameAndBuilding = `-- name: GetRoomByNameAndBuilding :one
+SELECT r.id, r.name, r.building_id, b.name AS building_name, b.address AS building_address
+FROM rooms r
+JOIN buildings b ON b.id = r.building_id
+WHERE r.name = $1 AND r.building_id = $2
+`
+
+type GetRoomByNameAndBuildingParams struct {
+	Name       string `json:"name"`
+	BuildingID int64  `json:"building_id"`
+}
+
+type GetRoomByNameAndBuildingRow struct {
+	ID              int64  `json:"id"`
+	Name            string `json:"name"`
+	BuildingID      int64  `json:"building_id"`
+	BuildingName    string `json:"building_name"`
+	BuildingAddress string `json:"building_address"`
+}
+
+func (q *Queries) GetRoomByNameAndBuilding(ctx context.Context, arg GetRoomByNameAndBuildingParams) (GetRoomByNameAndBuildingRow, error) {
+	row := q.db.QueryRowContext(ctx, getRoomByNameAndBuilding, arg.Name, arg.BuildingID)
+	var i GetRoomByNameAndBuildingRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,

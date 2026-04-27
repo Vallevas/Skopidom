@@ -13,6 +13,10 @@ type Querier interface {
 	// queries/photos.sql
 	AddItemPhoto(ctx context.Context, arg AddItemPhotoParams) (ItemPhoto, error)
 	BarcodeExists(ctx context.Context, barcode string) (bool, error)
+	CountDisposalDocumentsByItemID(ctx context.Context, itemID int64) (int64, error)
+	CountItemsByCategory(ctx context.Context, categoryID int64) (int64, error)
+	CountItemsByRoom(ctx context.Context, roomID int64) (int64, error)
+	CountRoomsByBuilding(ctx context.Context, buildingID int64) (int64, error)
 	CountUsersByRole(ctx context.Context, role string) (int64, error)
 	// queries/audit.sql
 	CreateAuditEvent(ctx context.Context, arg CreateAuditEventParams) (CreateAuditEventRow, error)
@@ -22,6 +26,9 @@ type Querier interface {
 	// Reference data queries: categories, buildings, rooms.
 	// ── Categories ───────────────────────────────────────────────────────────────
 	CreateCategory(ctx context.Context, name string) (int64, error)
+	// queries/disposal_documents.sql
+	// Disposal document queries.
+	CreateDisposalDocument(ctx context.Context, arg CreateDisposalDocumentParams) (CreateDisposalDocumentRow, error)
 	CreateItem(ctx context.Context, arg CreateItemParams) (CreateItemRow, error)
 	// ── Rooms ─────────────────────────────────────────────────────────────────────
 	CreateRoom(ctx context.Context, arg CreateRoomParams) (int64, error)
@@ -30,24 +37,30 @@ type Querier interface {
 	DeleteAllItemPhotos(ctx context.Context, itemID int64) error
 	DeleteBuilding(ctx context.Context, id int64) error
 	DeleteCategory(ctx context.Context, id int64) error
+	DeleteDisposalDocument(ctx context.Context, arg DeleteDisposalDocumentParams) error
 	DeleteItemPhoto(ctx context.Context, arg DeleteItemPhotoParams) error
 	DeleteRoom(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id int64) error
 	EmailExists(ctx context.Context, email string) (bool, error)
 	GetBuildingByID(ctx context.Context, id int64) (Building, error)
+	GetBuildingByName(ctx context.Context, name string) (Building, error)
 	GetCategoryByID(ctx context.Context, id int64) (Category, error)
+	GetCategoryByName(ctx context.Context, name string) (Category, error)
+	GetDisposalDocumentByID(ctx context.Context, id int64) (DisposalDocument, error)
 	GetItemByBarcode(ctx context.Context, barcode string) (ItemDetail, error)
 	// queries/items.sql
 	// Item queries — all SELECTs go through the item_details view.
 	// The view owns the JOIN logic; queries here stay intentionally simple.
 	GetItemByID(ctx context.Context, id int64) (ItemDetail, error)
 	GetRoomByID(ctx context.Context, id int64) (GetRoomByIDRow, error)
+	GetRoomByNameAndBuilding(ctx context.Context, arg GetRoomByNameAndBuildingParams) (GetRoomByNameAndBuildingRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	InventoryNumberExists(ctx context.Context, inventoryNumber string) (bool, error)
 	ListAuditEventsByItem(ctx context.Context, itemID int64) ([]ListAuditEventsByItemRow, error)
 	ListBuildings(ctx context.Context) ([]Building, error)
 	ListCategories(ctx context.Context) ([]Category, error)
+	ListDisposalDocumentsByItemID(ctx context.Context, itemID int64) ([]DisposalDocument, error)
 	ListItemPhotos(ctx context.Context, itemID int64) ([]ItemPhoto, error)
 	ListItems(ctx context.Context, arg ListItemsParams) ([]ItemDetail, error)
 	ListRooms(ctx context.Context) ([]ListRoomsRow, error)

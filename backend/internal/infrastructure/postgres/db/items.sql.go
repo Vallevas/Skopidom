@@ -66,7 +66,7 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (CreateI
 }
 
 const getItemByBarcode = `-- name: GetItemByBarcode :one
-SELECT id, barcode, inventory_number, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
+SELECT id, barcode, inventory_number, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, pending_disposal_at, disposed_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
 WHERE barcode = $1
 `
 
@@ -90,6 +90,8 @@ func (q *Queries) GetItemByBarcode(ctx context.Context, barcode string) (ItemDet
 		&i.TxHash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PendingDisposalAt,
+		&i.DisposedAt,
 		&i.CreatedBy,
 		&i.CreatorFullName,
 		&i.CreatorEmail,
@@ -108,7 +110,7 @@ func (q *Queries) GetItemByBarcode(ctx context.Context, barcode string) (ItemDet
 
 const getItemByID = `-- name: GetItemByID :one
 
-SELECT id, barcode, inventory_number, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
+SELECT id, barcode, inventory_number, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, pending_disposal_at, disposed_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
 WHERE id = $1
 `
 
@@ -135,6 +137,8 @@ func (q *Queries) GetItemByID(ctx context.Context, id int64) (ItemDetail, error)
 		&i.TxHash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PendingDisposalAt,
+		&i.DisposedAt,
 		&i.CreatedBy,
 		&i.CreatorFullName,
 		&i.CreatorEmail,
@@ -165,7 +169,7 @@ func (q *Queries) InventoryNumberExists(ctx context.Context, inventoryNumber str
 }
 
 const listItems = `-- name: ListItems :many
-SELECT id, barcode, inventory_number, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
+SELECT id, barcode, inventory_number, name, category_id, category_name, room_id, room_name, building_id, building_name, building_address, description, status, tx_hash, created_at, updated_at, pending_disposal_at, disposed_at, created_by, creator_full_name, creator_email, creator_role, creator_created_at, creator_updated_at, last_edited_by, editor_full_name, editor_email, editor_role, editor_created_at, editor_updated_at FROM item_details
 WHERE
     ($1::bigint IS NULL OR category_id = $1) AND
     ($2::bigint     IS NULL OR room_id     = $2)     AND
@@ -215,6 +219,8 @@ func (q *Queries) ListItems(ctx context.Context, arg ListItemsParams) ([]ItemDet
 			&i.TxHash,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PendingDisposalAt,
+			&i.DisposedAt,
 			&i.CreatedBy,
 			&i.CreatorFullName,
 			&i.CreatorEmail,
