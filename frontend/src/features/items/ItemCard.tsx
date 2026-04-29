@@ -16,6 +16,10 @@ export function ItemCard({ item }: Props) {
       label: t('items.disposed_badge'),
       cls: 'bg-destructive/10 text-destructive',
     },
+    pending_disposal: {
+      label: t('items.pending_disposal_badge'),
+      cls: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+    },
     in_repair: {
       label: t('items.in_repair_badge'),
       cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',

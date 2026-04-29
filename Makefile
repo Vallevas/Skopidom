@@ -91,6 +91,29 @@ psql: ## Open psql shell in the running postgres container
 createadmin: ## Insert a default admin user (password: password)
 	sudo docker exec -i $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "INSERT INTO users (full_name, email, password_hash, role) VALUES ('Администратор', 'admin@university.ru', '\$$2a\$$12\$$iB.8j9wRbmfza6qfuGTBn.l2dCkBc9ojVcIWnZi80nDM4bwO0RhEy', 'admin') ON CONFLICT (email) DO NOTHING;"
 
+.PHONY: seed
+seed: ## Import items from CSV (usage: make seed FILE=items.csv USER=admin@university.ru)
+	@if [ -z "$(FILE)" ]; then \
+		echo "Error: FILE parameter is required"; \
+		echo "Usage: make seed FILE=items.csv USER=admin@university.ru"; \
+		exit 1; \
+	fi
+	@if [ -z "$(USER)" ]; then \
+		echo "Error: USER parameter is required"; \
+		echo "Usage: make seed FILE=items.csv USER=admin@university.ru"; \
+		exit 1; \
+	fi
+	cd $(BACKEND_DIR) && go run ./cmd/seed --file=$(FILE) --user=$(USER)
+
+.PHONY: seed-dry-run
+seed-dry-run: ## Validate CSV without importing (usage: make seed-dry-run FILE=items.csv)
+	@if [ -z "$(FILE)" ]; then \
+		echo "Error: FILE parameter is required"; \
+		echo "Usage: make seed-dry-run FILE=items.csv"; \
+		exit 1; \
+	fi
+	cd $(BACKEND_DIR) && go run ./cmd/seed --file=$(FILE) --user=dummy@example.com --dry-run
+
 # ── Help ──────────────────────────────────────────────────────────────────────
 
 .PHONY: help

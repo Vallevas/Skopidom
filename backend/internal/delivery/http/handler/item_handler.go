@@ -193,15 +193,72 @@ func (h *ItemHandler) GetAuditLog(w http.ResponseWriter, r *http.Request) {
 }
 
 // Dispose godoc
-// DELETE /api/v1/items/{id}  (admin only)
-func (h *ItemHandler) Dispose(w http.ResponseWriter, r *http.Request) {
+// POST /api/v1/items/{id}/dispose  (admin only)
+// Initiates disposal by transitioning item to pending_disposal status.
+func (h *ItemHandler) InitiateDisposal(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
 		handleError(w, wrapInvalidInput(err))
 		return
 	}
 	actorID := middleware.UserIDFromCtx(r.Context())
-	if err := h.uc.Dispose(r.Context(), id, actorID); err != nil {
+	item, err := h.uc.InitiateDisposal(r.Context(), id, actorID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	respond(w, http.StatusOK, item)
+}
+
+// FinalizeDisposal godoc
+// POST /api/v1/items/{id}/finalize-disposal  (admin only)
+// Finalizes disposal by transitioning item to disposed status.
+func (h *ItemHandler) FinalizeDisposal(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+	actorID := middleware.UserIDFromCtx(r.Context())
+	item, err := h.uc.FinalizeDisposal(r.Context(), id, actorID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	respond(w, http.StatusOK, item)
+}
+
+// ListDisposalDocuments godoc
+// GET /api/v1/items/{id}/disposal-documents
+func (h *ItemHandler) ListDisposalDocuments(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+	docs, err := h.uc.ListDisposalDocuments(r.Context(), id)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	respond(w, http.StatusOK, docs)
+}
+
+// DeleteDisposalDocument godoc
+// DELETE /api/v1/items/{id}/disposal-documents/{docId}  (admin only)
+func (h *ItemHandler) DeleteDisposalDocument(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+	docID, err := parseIDParam(r, "docId")
+	if err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+	actorID := middleware.UserIDFromCtx(r.Context())
+	if err := h.uc.DeleteDisposalDocument(r.Context(), id, docID, actorID); err != nil {
 		handleError(w, err)
 		return
 	}

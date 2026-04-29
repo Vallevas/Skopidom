@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
-import { buildingsApi, categoriesApi, roomsApi } from '@/shared/api/client'
+import { buildingsApi, categoriesApi, roomsApi, translateError } from '@/shared/api/client'
 import { useToast } from '@/app/toast-context'
 import { cn } from '@/shared/ui/utils'
 
@@ -61,7 +61,7 @@ function BuildingsTab() {
       setForm(null)
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   const deleteMutation = useMutation({
@@ -70,7 +70,7 @@ function BuildingsTab() {
       queryClient.invalidateQueries({ queryKey: ['buildings'] })
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   return (
@@ -144,7 +144,7 @@ function CategoriesTab() {
       setForm(null)
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   const deleteMutation = useMutation({
@@ -153,7 +153,7 @@ function CategoriesTab() {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   return (
@@ -228,7 +228,7 @@ function RoomsTab() {
       setForm(null)
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   const deleteMutation = useMutation({
@@ -237,7 +237,7 @@ function RoomsTab() {
       queryClient.invalidateQueries({ queryKey: ['rooms', selectedBuildingId] })
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   return (

@@ -14,6 +14,12 @@ import (
 const (
 	// minJWTSecretLen is the minimum acceptable JWT secret length for HS256.
 	minJWTSecretLen = 32
+
+	// MaxDisposalDocumentSize is the maximum allowed size for disposal documents (5MB).
+	MaxDisposalDocumentSize = 5 * 1024 * 1024
+
+	// MaxDisposalDocumentsPerItem is the maximum number of disposal documents per item.
+	MaxDisposalDocumentsPerItem = 5
 )
 
 // Config holds all runtime configuration for the inventory server.
@@ -171,4 +177,3 @@ func splitTrimmed(s, sep string) []string {
 	}
 	return result
 }
-

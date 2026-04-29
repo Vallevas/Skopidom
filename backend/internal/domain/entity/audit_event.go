@@ -20,7 +20,40 @@ const (
 	ActionSentToRepair AuditAction = "sent_to_repair"
 	// ActionReturnedFromRepair is recorded when an in_repair item returns to active.
 	ActionReturnedFromRepair AuditAction = "returned_from_repair"
+	// ActionPendingDisposal is recorded when an item enters pending_disposal status.
+	ActionPendingDisposal AuditAction = "pending_disposal"
+	// ActionDisposalFinalized is recorded when disposal is finalized with documents.
+	ActionDisposalFinalized AuditAction = "disposal_finalized"
 )
+
+// AuditCategory represents the logical grouping of audit actions.
+// Actions are split into two categories for UI presentation:
+// - StatusLog: lifecycle events (creation, movement, disposal)
+// - Changelog: modifications and repairs
+type AuditCategory string
+
+const (
+	// CategoryStatusLog groups actions related to item lifecycle and location changes.
+	CategoryStatusLog AuditCategory = "status_log"
+	// CategoryChangelog groups actions related to item modifications and repairs.
+	CategoryChangelog AuditCategory = "changelog"
+)
+
+// Category returns the logical category of this audit action.
+// This categorization is used for splitting the audit log into two separate views:
+// - Status Log: tracks lifecycle events (creation, movement, disposal)
+// - Changelog: tracks modifications and repairs
+func (a AuditAction) Category() AuditCategory {
+	switch a {
+	case ActionCreated, ActionMoved, ActionDisposed, ActionPendingDisposal, ActionDisposalFinalized:
+		return CategoryStatusLog
+	case ActionUpdated, ActionSentToRepair, ActionReturnedFromRepair:
+		return CategoryChangelog
+	default:
+		// Default to changelog for any unknown actions
+		return CategoryChangelog
+	}
+}
 
 // AuditEvent is an immutable record of a single lifecycle change on an item.
 type AuditEvent struct {

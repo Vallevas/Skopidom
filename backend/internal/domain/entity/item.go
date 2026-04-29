@@ -11,6 +11,8 @@ const (
 	StatusActive ItemStatus = "active"
 	// StatusInRepair marks an item temporarily out of service for maintenance.
 	StatusInRepair ItemStatus = "in_repair"
+	// StatusPendingDisposal marks an item awaiting disposal document upload.
+	StatusPendingDisposal ItemStatus = "pending_disposal"
 	// StatusDisposed marks an item that has been permanently written off.
 	StatusDisposed ItemStatus = "disposed"
 )
@@ -40,6 +42,9 @@ type Item struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
+	PendingDisposalAt *time.Time `json:"pending_disposal_at,omitempty"`
+	DisposedAt        *time.Time `json:"disposed_at,omitempty"`
+
 	CreatedBy    uint64 `json:"created_by"`
 	LastEditedBy uint64 `json:"last_edited_by"`
 
@@ -53,14 +58,25 @@ func (item *Item) IsActive() bool {
 }
 
 // IsMutable returns true when the item can be edited.
-// Both active and in_repair items are mutable — only disposed items are locked.
+// Active and in_repair items are mutable — pending_disposal and disposed items are locked.
 func (item *Item) IsMutable() bool {
-	return item.Status != StatusDisposed
+	return item.Status != StatusDisposed && item.Status != StatusPendingDisposal
 }
 
-// Dispose transitions the item to the disposed state.
-func (item *Item) Dispose(actorID uint64) {
-	item.Status = StatusDisposed
+// MarkPendingDisposal transitions the item to pending_disposal state.
+func (item *Item) MarkPendingDisposal(actorID uint64) {
+	now := time.Now()
+	item.Status = StatusPendingDisposal
+	item.PendingDisposalAt = &now
 	item.LastEditedBy = actorID
-	item.UpdatedAt = time.Now()
+	item.UpdatedAt = now
+}
+
+// FinalizeDisposal transitions the item from pending_disposal to disposed state.
+func (item *Item) FinalizeDisposal(actorID uint64) {
+	now := time.Now()
+	item.Status = StatusDisposed
+	item.DisposedAt = &now
+	item.LastEditedBy = actorID
+	item.UpdatedAt = now
 }

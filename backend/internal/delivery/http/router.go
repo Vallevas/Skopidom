@@ -102,12 +102,18 @@ func NewRouter(cfg RouterConfig) http.Handler {
 					r.Get("/", itemH.GetByID)
 					r.Get("/audit", itemH.GetAuditLog)
 					r.Get("/photos", uploadH.ListItemPhotos)
+					r.Get("/disposal-documents", itemH.ListDisposalDocuments)
 					r.Patch("/", itemH.Update)
 					r.Patch("/room", itemH.MoveToRoom)
 					r.Patch("/repair", itemH.ToggleRepair)
 					r.Post("/photos", uploadH.UploadItemPhoto)
 					r.Delete("/photos/{photo_id}", uploadH.DeleteItemPhoto)
-					r.With(middleware.RequireAdmin).Delete("/", itemH.Dispose)
+
+					// Disposal workflow (admin only).
+					r.With(middleware.RequireAdmin).Post("/dispose", itemH.InitiateDisposal)
+					r.With(middleware.RequireAdmin).Post("/finalize-disposal", itemH.FinalizeDisposal)
+					r.With(middleware.RequireAdmin).Post("/disposal-documents", uploadH.UploadDisposalDocument)
+					r.With(middleware.RequireAdmin).Delete("/disposal-documents/{docId}", itemH.DeleteDisposalDocument)
 				})
 			})
 
