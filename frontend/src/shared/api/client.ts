@@ -4,6 +4,7 @@ import type {
   Category,
   CreateItemRequest,
   CreateUserRequest,
+  DisposalDocument,
   Item,
   ItemFilter,
   ItemPhoto,
@@ -43,6 +44,13 @@ export function translateError(message: string): string {
   if (message.includes('cannot delete own account'))       return 'errors.cannot_delete_own_account'
   if (message.includes('cannot delete the last admin'))    return 'errors.cannot_delete_last_admin'
   if (message.includes('cannot downgrade the last admin')) return 'errors.cannot_downgrade_last_admin'
+  if (message.includes('must be active or in_repair'))     return 'errors.item_must_be_active_or_in_repair'
+  if (message.includes('must be in pending_disposal'))     return 'errors.item_must_be_pending_disposal'
+  if (message.includes('at least one disposal document'))  return 'errors.disposal_document_required'
+  if (message.includes('maximum') && message.includes('disposal documents')) return 'errors.disposal_document_limit'
+  if (message.includes('cannot delete building') && message.includes('rooms are in this building')) return 'errors.cannot_delete_building_with_rooms'
+  if (message.includes('cannot delete room') && message.includes('items are in this room')) return 'errors.cannot_delete_room_with_items'
+  if (message.includes('cannot delete category') && message.includes('items are using this category')) return 'errors.cannot_delete_category_with_items'
   return 'errors.unknown'
 }
 
@@ -89,8 +97,13 @@ export const itemsApi = {
     request<Item>(`/items/${id}/room`, { method: 'PATCH', body: JSON.stringify(body) }),
   toggleRepair: (id: number) =>
     request<Item>(`/items/${id}/repair`, { method: 'PATCH' }),
-  dispose: (id: number) =>
-    request<void>(`/items/${id}`, { method: 'DELETE' }),
+  
+  // Disposal workflow
+  initiateDisposal: (id: number) =>
+    request<Item>(`/items/${id}/dispose`, { method: 'POST' }),
+  finalizeDisposal: (id: number) =>
+    request<Item>(`/items/${id}/finalize-disposal`, { method: 'POST' }),
+  
   getAuditLog: (id: number) =>
     request<AuditEvent[]>(`/items/${id}/audit`),
 
@@ -111,6 +124,26 @@ export const itemsApi = {
   },
   deletePhoto: (itemId: number, photoId: number) =>
     request<void>(`/items/${itemId}/photos/${photoId}`, { method: 'DELETE' }),
+
+  // Disposal documents
+  listDisposalDocuments: (id: number) =>
+    request<DisposalDocument[]>(`/items/${id}/disposal-documents`),
+  uploadDisposalDocument: (id: number, file: File) => {
+    const form = new FormData()
+    form.append('document', file)
+    const token = tokenStorage.get()
+    return fetch(`/api/v1/items/${id}/disposal-documents`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (res) => {
+      const data = await res.json()
+      if (!res.ok) throw new ApiClientError(res.status, data)
+      return data as DisposalDocument
+    })
+  },
+  deleteDisposalDocument: (itemId: number, docId: number) =>
+    request<void>(`/items/${itemId}/disposal-documents/${docId}`, { method: 'DELETE' }),
 }
 
 export const usersApi = {

@@ -11,6 +11,14 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  frontend:
+    build: ./frontend/
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     env_file: .env

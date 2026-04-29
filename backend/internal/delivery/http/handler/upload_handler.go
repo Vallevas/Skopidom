@@ -8,6 +8,7 @@ import (
 	"github.com/Vallevas/Skopidom/internal/delivery/http/middleware"
 	"github.com/Vallevas/Skopidom/internal/infrastructure/storage"
 	itemUC "github.com/Vallevas/Skopidom/internal/usecase/item"
+	"github.com/Vallevas/Skopidom/pkg/config"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -126,4 +127,45 @@ func (h *UploadHandler) ListItemPhotos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, http.StatusOK, photos)
+}
+
+// UploadDisposalDocument godoc
+// POST /api/v1/items/{id}/disposal-documents
+// Content-Type: multipart/form-data  field: "document"
+func (h *UploadHandler) UploadDisposalDocument(w http.ResponseWriter, r *http.Request) {
+	itemID, err := parseIDParam(r, "id")
+	if err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, int64(config.MaxDisposalDocumentSize))
+	if err := r.ParseMultipartForm(int64(config.MaxDisposalDocumentSize)); err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+
+	file, header, err := r.FormFile("document")
+	if err != nil {
+		handleError(w, wrapInvalidInput(err))
+		return
+	}
+	defer file.Close()
+
+	docURL, err := h.storage.SaveDocument(r.Context(), file, header)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	actorID := middleware.UserIDFromCtx(r.Context())
+
+	doc, err := h.itemUC.UploadDisposalDocument(r.Context(), itemID, header.Filename, docURL, actorID)
+	if err != nil {
+		_ = h.storage.Delete(r.Context(), docURL)
+		handleError(w, err)
+		return
+	}
+
+	respond(w, http.StatusCreated, doc)
 }

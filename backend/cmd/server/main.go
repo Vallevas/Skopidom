@@ -53,12 +53,15 @@ func main() {
 	// ── Photos ─────────────────────────────────────────────────────────────
 	photoRepo := postgres.NewPhotoRepo(pool)
 
+	// ── Disposal Documents ─────────────────────────────────────────────────
+	disposalDocRepo := postgres.NewDisposalDocumentRepo(pool)
+
 	// ── Audit Logger ───────────────────────────────────────────────────────
 	//auditLogger :=  blockchain.NewBlockchainAuditLogger(...)
 	auditLogger := postgres.NewPostgresAuditLogger(pool)
 
 	// ── Use Cases ──────────────────────────────────────────────────────────
-	itemUseCase := itemUC.New(itemRepo, categoryRepo, roomRepo, photoRepo, auditLogger)
+	itemUseCase := itemUC.New(itemRepo, categoryRepo, roomRepo, photoRepo, disposalDocRepo, auditLogger)
 	userUseCase := userUC.New(userRepo)
 
 	// ── File Storage ───────────────────────────────────────────────────────

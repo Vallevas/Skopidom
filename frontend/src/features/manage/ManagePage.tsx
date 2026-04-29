@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
-import { buildingsApi, categoriesApi, roomsApi } from '@/shared/api/client'
+import { buildingsApi, categoriesApi, roomsApi, translateError } from '@/shared/api/client'
 import { useToast } from '@/app/toast-context'
 import { cn } from '@/shared/ui/utils'
 
@@ -61,7 +61,7 @@ function BuildingsTab() {
       setForm(null)
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   const deleteMutation = useMutation({
@@ -70,7 +70,7 @@ function BuildingsTab() {
       queryClient.invalidateQueries({ queryKey: ['buildings'] })
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   return (
@@ -83,7 +83,7 @@ function BuildingsTab() {
         {t('manage.add_building')}
       </button>
 
-      <div className="space-y-2">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {buildings.map((b) => (
           <div key={b.id} className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
             <div>
@@ -144,7 +144,7 @@ function CategoriesTab() {
       setForm(null)
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   const deleteMutation = useMutation({
@@ -153,7 +153,7 @@ function CategoriesTab() {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   return (
@@ -166,7 +166,7 @@ function CategoriesTab() {
         {t('manage.add_category')}
       </button>
 
-      <div className="space-y-2">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {categories.map((c) => (
           <div key={c.id} className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
             <p className="text-sm font-medium">{c.name}</p>
@@ -228,7 +228,7 @@ function RoomsTab() {
       setForm(null)
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   const deleteMutation = useMutation({
@@ -237,7 +237,7 @@ function RoomsTab() {
       queryClient.invalidateQueries({ queryKey: ['rooms', selectedBuildingId] })
       toast.success(t('common.success'))
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(t(translateError(err.message))),
   })
 
   return (
@@ -266,7 +266,7 @@ function RoomsTab() {
             {t('manage.add_room')}
           </button>
 
-          <div className="space-y-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {rooms.map((r) => (
               <div key={r.id} className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
                 <p className="text-sm font-medium">{r.name}</p>

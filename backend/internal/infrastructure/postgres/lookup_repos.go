@@ -46,6 +46,17 @@ func (r *CategoryRepo) GetByID(ctx context.Context, id uint64) (*entity.Category
 	return &entity.Category{ID: uint64(row.ID), Name: row.Name}, nil
 }
 
+func (r *CategoryRepo) GetByName(ctx context.Context, name string) (*entity.Category, error) {
+	row, err := r.queries.GetCategoryByName(ctx, name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, logger.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("CategoryRepo.GetByName: %w", err)
+	}
+	return &entity.Category{ID: uint64(row.ID), Name: row.Name}, nil
+}
+
 func (r *CategoryRepo) List(ctx context.Context) ([]*entity.Category, error) {
 	rows, err := r.queries.ListCategories(ctx)
 	if err != nil {
@@ -70,6 +81,15 @@ func (r *CategoryRepo) Update(ctx context.Context, cat *entity.Category) error {
 }
 
 func (r *CategoryRepo) Delete(ctx context.Context, id uint64) error {
+	// Check if category has items
+	count, err := r.queries.CountItemsByCategory(ctx, int64(id))
+	if err != nil {
+		return fmt.Errorf("CategoryRepo.Delete: %w", err)
+	}
+	if count > 0 {
+		return fmt.Errorf("cannot delete category: %d items are using this category: %w", count, logger.ErrConflict)
+	}
+
 	if err := r.queries.DeleteCategory(ctx, int64(id)); err != nil {
 		return fmt.Errorf("CategoryRepo.Delete: %w", err)
 	}
@@ -111,6 +131,17 @@ func (r *BuildingRepo) GetByID(ctx context.Context, id uint64) (*entity.Building
 	return &entity.Building{ID: uint64(row.ID), Name: row.Name, Address: row.Address}, nil
 }
 
+func (r *BuildingRepo) GetByName(ctx context.Context, name string) (*entity.Building, error) {
+	row, err := r.queries.GetBuildingByName(ctx, name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, logger.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("BuildingRepo.GetByName: %w", err)
+	}
+	return &entity.Building{ID: uint64(row.ID), Name: row.Name, Address: row.Address}, nil
+}
+
 func (r *BuildingRepo) List(ctx context.Context) ([]*entity.Building, error) {
 	rows, err := r.queries.ListBuildings(ctx)
 	if err != nil {
@@ -140,6 +171,15 @@ func (r *BuildingRepo) Update(ctx context.Context, b *entity.Building) error {
 }
 
 func (r *BuildingRepo) Delete(ctx context.Context, id uint64) error {
+	// Check if building has rooms
+	count, err := r.queries.CountRoomsByBuilding(ctx, int64(id))
+	if err != nil {
+		return fmt.Errorf("BuildingRepo.Delete: %w", err)
+	}
+	if count > 0 {
+		return fmt.Errorf("cannot delete building: %d rooms are in this building: %w", count, logger.ErrConflict)
+	}
+
 	if err := r.queries.DeleteBuilding(ctx, int64(id)); err != nil {
 		return fmt.Errorf("BuildingRepo.Delete: %w", err)
 	}
@@ -181,6 +221,20 @@ func (r *RoomRepo) GetByID(ctx context.Context, id uint64) (*entity.Room, error)
 	return mapRoomFromGetByID(row), nil
 }
 
+func (r *RoomRepo) GetByNameAndBuilding(ctx context.Context, name string, buildingID uint64) (*entity.Room, error) {
+	row, err := r.queries.GetRoomByNameAndBuilding(ctx, db.GetRoomByNameAndBuildingParams{
+		Name:       name,
+		BuildingID: int64(buildingID),
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, logger.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("RoomRepo.GetByNameAndBuilding: %w", err)
+	}
+	return mapRoomFromGetByNameAndBuilding(row), nil
+}
+
 func (r *RoomRepo) List(ctx context.Context) ([]*entity.Room, error) {
 	rows, err := r.queries.ListRooms(ctx)
 	if err != nil {
@@ -218,6 +272,15 @@ func (r *RoomRepo) Update(ctx context.Context, room *entity.Room) error {
 }
 
 func (r *RoomRepo) Delete(ctx context.Context, id uint64) error {
+	// Check if room has items
+	count, err := r.queries.CountItemsByRoom(ctx, int64(id))
+	if err != nil {
+		return fmt.Errorf("RoomRepo.Delete: %w", err)
+	}
+	if count > 0 {
+		return fmt.Errorf("cannot delete room: %d items are in this room: %w", count, logger.ErrConflict)
+	}
+
 	if err := r.queries.DeleteRoom(ctx, int64(id)); err != nil {
 		return fmt.Errorf("RoomRepo.Delete: %w", err)
 	}
@@ -267,3 +330,15 @@ func mapRoomFromListByBuilding(row db.ListRoomsByBuildingRow) *entity.Room {
 	}
 }
 
+func mapRoomFromGetByNameAndBuilding(row db.GetRoomByNameAndBuildingRow) *entity.Room {
+	return &entity.Room{
+		ID:         uint64(row.ID),
+		Name:       row.Name,
+		BuildingID: uint64(row.BuildingID),
+		Building: &entity.Building{
+			ID:      uint64(row.BuildingID),
+			Name:    row.BuildingName,
+			Address: row.BuildingAddress,
+		},
+	}
+}

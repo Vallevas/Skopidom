@@ -1,0 +1,822 @@
+
+Skopidom ❯ ./curl_tests/00_create_admin.sh                              dev   
+INSERT 0 1
+Skopidom ❯ ./curl_tests/01_login.sh                                     dev   
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjEsInJvbGUiOiJhZG1pbiIsImV4cCI6MTc3MjU2MjE5MywiaWF0IjoxNzcyNDc1NzkzfQ.CXoGiTQ0xZMIZbvgSYyUcrOGHcI5HQMjaUp6er_6UY0
+Skopidom ❯ # Создать здание                                             dev   
+curl -s -X POST http://localhost:8080/api/v1/buildings \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Главный корпус","address":"ул. Университетская, 1"}' | jq .
+
+{
+  "id": 1,
+  "name": "Главный корпус",
+  "address": "ул. Университетская, 1"
+}
+Skopidom ❯ curl -s -X POST http://localhost:8080/api/v1/rooms \         dev   
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Аудитория 301","building_id":1}' | jq .
+
+{
+  "id": 1,
+  "name": "Аудитория 301",
+  "building_id": 1,
+  "building": {
+    "id": 1,
+    "name": "Главный корпус",
+    "address": "ул. Университетская, 1"
+  }
+}
+Skopidom ❯ curl -s -X POST http://localhost:8080/api/v1/categories \    dev   
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Компьютер"}' | jq .
+
+{
+  "id": 1,
+  "name": "Компьютер"
+}
+Skopidom ❯ curl -s http://localhost:8080/api/v1/buildings \             dev   
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+[
+  {
+    "id": 1,
+    "name": "Главный корпус",
+    "address": "ул. Университетская, 1"
+  }
+]
+Skopidom ❯ curl -s "http://localhost:8080/api/v1/rooms?building_id=1" \
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+[
+  {
+    "id": 1,
+    "name": "Аудитория 301",
+    "building_id": 1,
+    "building": {
+      "id": 1,
+      "name": "Главный корпус",
+      "address": "ул. Университетская, 1"
+    }
+  }
+]
+Skopidom ❯ curl -s http://localhost:8080/api/v1/categories \            dev   
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+[
+  {
+    "id": 1,
+    "name": "Компьютер"
+  }
+]
+Skopidom ❯ curl -s -X POST http://localhost:8080/api/v1/items \         dev   
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "barcode": "INV-2024-001",
+    "name": "Dell OptiPlex 7090",
+    "category_id": 1,
+    "room_id": 1,
+    "description": "Системный блок, SN: XYZ123"
+  }' | jq .
+
+{
+  "id": 1,
+  "barcode": "INV-2024-001",
+  "name": "Dell OptiPlex 7090",
+  "category_id": 1,
+  "category": {
+    "id": 1,
+    "name": "Компьютер"
+  },
+  "room_id": 1,
+  "room": {
+    "id": 1,
+    "name": "Аудитория 301",
+    "building_id": 1,
+    "building": {
+      "id": 1,
+      "name": "Главный корпус",
+      "address": "ул. Университетская, 1"
+    }
+  },
+  "description": "Системный блок, SN: XYZ123",
+  "status": "active",
+  "created_at": "2026-03-02T21:24:26.279893+03:00",
+  "updated_at": "2026-03-02T21:24:26.279893+03:00",
+  "created_by": 1,
+  "last_edited_by": 1,
+  "creator": {
+    "id": 1,
+    "full_name": "Администратор",
+    "email": "admin@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:23:08.537156+03:00",
+    "updated_at": "2026-03-02T21:23:08.537156+03:00"
+  },
+  "last_editor": {
+    "id": 1,
+    "full_name": "Администратор",
+    "email": "admin@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:23:08.537156+03:00",
+    "updated_at": "2026-03-02T21:23:08.537156+03:00"
+  }
+}
+Skopidom ❯ curl -s -X POST http://localhost:8080/api/v1/items \         dev   
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "barcode": "INV-2024-002",
+    "name": "Dell Monitor U2422H",
+    "category_id": 1,
+    "room_id": 1,
+    "description": "Монитор 24 дюйма"
+  }' | jq .
+
+{
+  "id": 2,
+  "barcode": "INV-2024-002",
+  "name": "Dell Monitor U2422H",
+  "category_id": 1,
+  "category": {
+    "id": 1,
+    "name": "Компьютер"
+  },
+  "room_id": 1,
+  "room": {
+    "id": 1,
+    "name": "Аудитория 301",
+    "building_id": 1,
+    "building": {
+      "id": 1,
+      "name": "Главный корпус",
+      "address": "ул. Университетская, 1"
+    }
+  },
+  "description": "Монитор 24 дюйма",
+  "status": "active",
+  "created_at": "2026-03-02T21:24:32.814123+03:00",
+  "updated_at": "2026-03-02T21:24:32.814123+03:00",
+  "created_by": 1,
+  "last_edited_by": 1,
+  "creator": {
+    "id": 1,
+    "full_name": "Администратор",
+    "email": "admin@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:23:08.537156+03:00",
+    "updated_at": "2026-03-02T21:23:08.537156+03:00"
+  },
+  "last_editor": {
+    "id": 1,
+    "full_name": "Администратор",
+    "email": "admin@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:23:08.537156+03:00",
+    "updated_at": "2026-03-02T21:23:08.537156+03:00"
+  }
+}
+Skopidom ❯ curl -s http://localhost:8080/api/v1/items \                 dev   
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+[
+  {
+    "id": 2,
+    "barcode": "INV-2024-002",
+    "name": "Dell Monitor U2422H",
+    "category_id": 1,
+    "category": {
+      "id": 1,
+      "name": "Компьютер"
+    },
+    "room_id": 1,
+    "room": {
+      "id": 1,
+      "name": "Аудитория 301",
+      "building_id": 1,
+      "building": {
+        "id": 1,
+        "name": "Главный корпус",
+        "address": "ул. Университетская, 1"
+      }
+    },
+    "description": "Монитор 24 дюйма",
+    "status": "active",
+    "created_at": "2026-03-02T21:24:32.814123+03:00",
+    "updated_at": "2026-03-02T21:24:32.814123+03:00",
+    "created_by": 1,
+    "last_edited_by": 1,
+    "creator": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    },
+    "last_editor": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    }
+  },
+  {
+    "id": 1,
+    "barcode": "INV-2024-001",
+    "name": "Dell OptiPlex 7090",
+    "category_id": 1,
+    "category": {
+      "id": 1,
+      "name": "Компьютер"
+    },
+    "room_id": 1,
+    "room": {
+      "id": 1,
+      "name": "Аудитория 301",
+      "building_id": 1,
+      "building": {
+        "id": 1,
+        "name": "Главный корпус",
+        "address": "ул. Университетская, 1"
+      }
+    },
+    "description": "Системный блок, SN: XYZ123",
+    "status": "active",
+    "created_at": "2026-03-02T21:24:26.279893+03:00",
+    "updated_at": "2026-03-02T21:24:26.279893+03:00",
+    "created_by": 1,
+    "last_edited_by": 1,
+    "creator": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    },
+    "last_editor": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    }
+  }
+]
+Skopidom ❯ curl -s http://localhost:8080/api/v1/items/1 \               dev   
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+{
+  "id": 1,
+  "barcode": "INV-2024-001",
+  "name": "Dell OptiPlex 7090",
+  "category_id": 1,
+  "category": {
+    "id": 1,
+    "name": "Компьютер"
+  },
+  "room_id": 1,
+  "room": {
+    "id": 1,
+    "name": "Аудитория 301",
+    "building_id": 1,
+    "building": {
+      "id": 1,
+      "name": "Главный корпус",
+      "address": "ул. Университетская, 1"
+    }
+  },
+  "description": "Системный блок, SN: XYZ123",
+  "status": "active",
+  "created_at": "2026-03-02T21:24:26.279893+03:00",
+  "updated_at": "2026-03-02T21:24:26.279893+03:00",
+  "created_by": 1,
+  "last_edited_by": 1,
+  "creator": {
+    "id": 1,
+    "full_name": "Администратор",
+    "email": "admin@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:23:08.537156+03:00",
+    "updated_at": "2026-03-02T21:23:08.537156+03:00"
+  },
+  "last_editor": {
+    "id": 1,
+    "full_name": "Администратор",
+    "email": "admin@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:23:08.537156+03:00",
+    "updated_at": "2026-03-02T21:23:08.537156+03:00"
+  }
+}
+Skopidom ❯ curl -s http://localhost:8080/api/v1/items/barcode/INV-2024-001 \
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+{
+  "id": 1,
+  "barcode": "INV-2024-001",
+  "name": "Dell OptiPlex 7090",
+  "category_id": 1,
+  "category": {
+    "id": 1,
+    "name": "Компьютер"
+  },
+  "room_id": 1,
+  "room": {
+    "id": 1,
+    "name": "Аудитория 301",
+    "building_id": 1,
+    "building": {
+      "id": 1,
+      "name": "Главный корпус",
+      "address": "ул. Университетская, 1"
+    }
+  },
+  "description": "Системный блок, SN: XYZ123",
+  "status": "active",
+  "created_at": "2026-03-02T21:24:26.279893+03:00",
+  "updated_at": "2026-03-02T21:24:26.279893+03:00",
+  "created_by": 1,
+  "last_edited_by": 1,
+  "creator": {
+    "id": 1,
+    "full_name": "Администратор",
+    "email": "admin@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:23:08.537156+03:00",
+    "updated_at": "2026-03-02T21:23:08.537156+03:00"
+  },
+  "last_editor": {
+    "id": 1,
+    "full_name": "Администратор",
+    "email": "admin@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:23:08.537156+03:00",
+    "updated_at": "2026-03-02T21:23:08.537156+03:00"
+  }
+}
+Skopidom ❯ curl -s "http://localhost:8080/api/v1/items?room_id=1" \     dev   
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+[
+  {
+    "id": 2,
+    "barcode": "INV-2024-002",
+    "name": "Dell Monitor U2422H",
+    "category_id": 1,
+    "category": {
+      "id": 1,
+      "name": "Компьютер"
+    },
+    "room_id": 1,
+    "room": {
+      "id": 1,
+      "name": "Аудитория 301",
+      "building_id": 1,
+      "building": {
+        "id": 1,
+        "name": "Главный корпус",
+        "address": "ул. Университетская, 1"
+      }
+    },
+    "description": "Монитор 24 дюйма",
+    "status": "active",
+    "created_at": "2026-03-02T21:24:32.814123+03:00",
+    "updated_at": "2026-03-02T21:24:32.814123+03:00",
+    "created_by": 1,
+    "last_edited_by": 1,
+    "creator": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    },
+    "last_editor": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    }
+  },
+  {
+    "id": 1,
+    "barcode": "INV-2024-001",
+    "name": "Dell OptiPlex 7090",
+    "category_id": 1,
+    "category": {
+      "id": 1,
+      "name": "Компьютер"
+    },
+    "room_id": 1,
+    "room": {
+      "id": 1,
+      "name": "Аудитория 301",
+      "building_id": 1,
+      "building": {
+        "id": 1,
+        "name": "Главный корпус",
+        "address": "ул. Университетская, 1"
+      }
+    },
+    "description": "Системный блок, SN: XYZ123",
+    "status": "active",
+    "created_at": "2026-03-02T21:24:26.279893+03:00",
+    "updated_at": "2026-03-02T21:24:26.279893+03:00",
+    "created_by": 1,
+    "last_edited_by": 1,
+    "creator": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    },
+    "last_editor": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    }
+  }
+]
+Skopidom ❯ curl -s "http://localhost:8080/api/v1/items?category_id=1" \
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+[
+  {
+    "id": 2,
+    "barcode": "INV-2024-002",
+    "name": "Dell Monitor U2422H",
+    "category_id": 1,
+    "category": {
+      "id": 1,
+      "name": "Компьютер"
+    },
+    "room_id": 1,
+    "room": {
+      "id": 1,
+      "name": "Аудитория 301",
+      "building_id": 1,
+      "building": {
+        "id": 1,
+        "name": "Главный корпус",
+        "address": "ул. Университетская, 1"
+      }
+    },
+    "description": "Монитор 24 дюйма",
+    "status": "active",
+    "created_at": "2026-03-02T21:24:32.814123+03:00",
+    "updated_at": "2026-03-02T21:24:32.814123+03:00",
+    "created_by": 1,
+    "last_edited_by": 1,
+    "creator": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    },
+    "last_editor": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    }
+  },
+  {
+    "id": 1,
+    "barcode": "INV-2024-001",
+    "name": "Dell OptiPlex 7090",
+    "category_id": 1,
+    "category": {
+      "id": 1,
+      "name": "Компьютер"
+    },
+    "room_id": 1,
+    "room": {
+      "id": 1,
+      "name": "Аудитория 301",
+      "building_id": 1,
+      "building": {
+        "id": 1,
+        "name": "Главный корпус",
+        "address": "ул. Университетская, 1"
+      }
+    },
+    "description": "Системный блок, SN: XYZ123",
+    "status": "active",
+    "created_at": "2026-03-02T21:24:26.279893+03:00",
+    "updated_at": "2026-03-02T21:24:26.279893+03:00",
+    "created_by": 1,
+    "last_edited_by": 1,
+    "creator": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    },
+    "last_editor": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    }
+  }
+]
+Skopidom ❯ curl -s "http://localhost:8080/api/v1/items?status=active" \
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+[
+  {
+    "id": 2,
+    "barcode": "INV-2024-002",
+    "name": "Dell Monitor U2422H",
+    "category_id": 1,
+    "category": {
+      "id": 1,
+      "name": "Компьютер"
+    },
+    "room_id": 1,
+    "room": {
+      "id": 1,
+      "name": "Аудитория 301",
+      "building_id": 1,
+      "building": {
+        "id": 1,
+        "name": "Главный корпус",
+        "address": "ул. Университетская, 1"
+      }
+    },
+    "description": "Монитор 24 дюйма",
+    "status": "active",
+    "created_at": "2026-03-02T21:24:32.814123+03:00",
+    "updated_at": "2026-03-02T21:24:32.814123+03:00",
+    "created_by": 1,
+    "last_edited_by": 1,
+    "creator": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    },
+    "last_editor": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    }
+  },
+  {
+    "id": 1,
+    "barcode": "INV-2024-001",
+    "name": "Dell OptiPlex 7090",
+    "category_id": 1,
+    "category": {
+      "id": 1,
+      "name": "Компьютер"
+    },
+    "room_id": 1,
+    "room": {
+      "id": 1,
+      "name": "Аудитория 301",
+      "building_id": 1,
+      "building": {
+        "id": 1,
+        "name": "Главный корпус",
+        "address": "ул. Университетская, 1"
+      }
+    },
+    "description": "Системный блок, SN: XYZ123",
+    "status": "active",
+    "created_at": "2026-03-02T21:24:26.279893+03:00",
+    "updated_at": "2026-03-02T21:24:26.279893+03:00",
+    "created_by": 1,
+    "last_edited_by": 1,
+    "creator": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    },
+    "last_editor": {
+      "id": 1,
+      "full_name": "Администратор",
+      "email": "admin@university.ru",
+      "role": "admin",
+      "created_at": "2026-03-02T21:23:08.537156+03:00",
+      "updated_at": "2026-03-02T21:23:08.537156+03:00"
+    }
+  }
+]
+Skopidom ❯ curl -s -X PATCH http://localhost:8080/api/v1/items/1 \      dev   
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"description":"Системный блок, SN: XYZ123, RAM: 16GB, обновлено"}' | jq .
+
+{
+  "id": 1,
+  "barcode": "INV-2024-001",
+  "name": "Dell OptiPlex 7090",
+  "category_id": 1,
+  "category": {
+    "id": 1,
+    "name": "Компьютер"
+  },
+  "room_id": 1,
+  "room": {
+    "id": 1,
+    "name": "Аудитория 301",
+    "building_id": 1,
+    "building": {
+      "id": 1,
+      "name": "Главный корпус",
+      "address": "ул. Университетская, 1"
+    }
+  },
+  "description": "Системный блок, SN: XYZ123, RAM: 16GB, обновлено",
+  "status": "active",
+  "created_at": "2026-03-02T21:24:26.279893+03:00",
+  "updated_at": "2026-03-02T21:25:19.062344+03:00",
+  "created_by": 1,
+  "last_edited_by": 1,
+  "creator": {
+    "id": 1,
+    "full_name": "Администратор",
+    "email": "admin@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:23:08.537156+03:00",
+    "updated_at": "2026-03-02T21:23:08.537156+03:00"
+  },
+  "last_editor": {
+    "id": 1,
+    "full_name": "Администратор",
+    "email": "admin@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:23:08.537156+03:00",
+    "updated_at": "2026-03-02T21:23:08.537156+03:00"
+  }
+}
+Skopidom ❯ curl -s -X POST http://localhost:8080/api/v1/items \         dev   
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"barcode":"INV-2024-001","name":"Дубликат","category_id":1,"room_id":1}' | jq .
+
+{
+  "error": "barcode \"INV-2024-001\": resource already exists"
+}
+Skopidom ❯ curl -s -o /dev/null -w "%{http_code}" -X DELETE http://localhost:8080/api/v1/items/1 \
+  -H "Authorization: Bearer $TOKEN"
+
+204%
+Skopidom ❯ curl -s -X PATCH http://localhost:8080/api/v1/items/1 \      dev   
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"description":"попытка изменить"}' | jq .
+
+{
+  "error": "item 1: item is disposed and cannot be modified"
+}
+Skopidom ❯ curl -s -X POST http://localhost:8080/api/v1/users \         dev   
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "full_name": "Иванов Иван Иванович",
+    "email": "ivanov@university.ru",
+    "password": "securepass123",
+    "role": "editor"
+  }' | jq .
+
+{
+  "id": 2,
+  "full_name": "Иванов Иван Иванович",
+  "email": "ivanov@university.ru",
+  "role": "editor",
+  "created_at": "2026-03-02T21:25:54.866879+03:00",
+  "updated_at": "2026-03-02T21:25:54.866879+03:00"
+}
+Skopidom ❯ curl -s http://localhost:8080/api/v1/users \                 dev   
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+[
+  {
+    "id": 1,
+    "full_name": "Администратор",
+    "email": "admin@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:23:08.537156+03:00",
+    "updated_at": "2026-03-02T21:23:08.537156+03:00"
+  },
+  {
+    "id": 2,
+    "full_name": "Иванов Иван Иванович",
+    "email": "ivanov@university.ru",
+    "role": "editor",
+    "created_at": "2026-03-02T21:25:54.866879+03:00",
+    "updated_at": "2026-03-02T21:25:54.866879+03:00"
+  }
+]
+Skopidom ❯ curl -s -X PATCH http://localhost:8080/api/v1/users/2 \      dev   
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"role":"admin"}' | jq .
+
+{
+  "id": 2,
+  "full_name": "Иванов Иван Иванович",
+  "email": "ivanov@university.ru",
+  "role": "admin",
+  "created_at": "2026-03-02T21:25:54.866879+03:00",
+  "updated_at": "2026-03-02T21:26:05.339741+03:00"
+}
+Skopidom ❯ EDITOR_TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"ivanov@university.ru","password":"securepass123"}' | jq -r .token)
+
+Skopidom ❯ curl -s -X POST http://localhost:8080/api/v1/items \         dev   
+  -H "Authorization: Bearer $EDITOR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "barcode": "INV-2024-003",
+    "name": "HP LaserJet Pro",
+    "category_id": 1,
+    "room_id": 1
+  }' | jq .
+
+{
+  "id": 3,
+  "barcode": "INV-2024-003",
+  "name": "HP LaserJet Pro",
+  "category_id": 1,
+  "category": {
+    "id": 1,
+    "name": "Компьютер"
+  },
+  "room_id": 1,
+  "room": {
+    "id": 1,
+    "name": "Аудитория 301",
+    "building_id": 1,
+    "building": {
+      "id": 1,
+      "name": "Главный корпус",
+      "address": "ул. Университетская, 1"
+    }
+  },
+  "description": "",
+  "status": "active",
+  "created_at": "2026-03-02T21:26:19.378207+03:00",
+  "updated_at": "2026-03-02T21:26:19.378207+03:00",
+  "created_by": 2,
+  "last_edited_by": 2,
+  "creator": {
+    "id": 2,
+    "full_name": "Иванов Иван Иванович",
+    "email": "ivanov@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:25:54.866879+03:00",
+    "updated_at": "2026-03-02T21:26:05.339741+03:00"
+  },
+  "last_editor": {
+    "id": 2,
+    "full_name": "Иванов Иван Иванович",
+    "email": "ivanov@university.ru",
+    "role": "admin",
+    "created_at": "2026-03-02T21:25:54.866879+03:00",
+    "updated_at": "2026-03-02T21:26:05.339741+03:00"
+  }
+}
+Skopidom ❯ curl -s -o /dev/null -w "%{http_code}" -X DELETE http://localhost:8080/api/v1/items/2 \
+  -H "Authorization: Bearer $EDITOR_TOKEN"
+
+204%
+Skopidom ❯ curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/items
+
+401%

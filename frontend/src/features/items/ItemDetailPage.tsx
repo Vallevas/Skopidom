@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft, Pencil, Trash2, Camera, X, ChevronDown, ChevronUp,
-  Wrench, ChevronLeft, ChevronRight,
+  Wrench, ChevronLeft, ChevronRight, FileText, Download,
 } from 'lucide-react'
 import { itemsApi, buildingsApi, roomsApi, translateError } from '@/shared/api/client'
 import type { ItemPhoto } from '@/shared/api/types'
@@ -109,11 +109,13 @@ export function ItemDetailPage() {
   const [description, setDescription] = useState('')
   const [showAudit, setShowAudit] = useState(false)
   const [confirmDispose, setConfirmDispose] = useState(false)
+  const [confirmFinalize, setConfirmFinalize] = useState(false)
   const [movingRoom, setMovingRoom] = useState(false)
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>()
   const [selectedRoomId, setSelectedRoomId] = useState<number | undefined>()
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
+  const docInputRef = useRef<HTMLInputElement>(null)
 
   const { data: item, isLoading } = useQuery({
     queryKey: ['item', itemId],
@@ -126,6 +128,14 @@ export function ItemDetailPage() {
     queryFn: () => itemsApi.listPhotos(itemId),
     enabled: !!itemId,
   })
+
+  const { data: disposalDocs = [] } = useQuery({
+    queryKey: ['disposal-docs', itemId],
+    queryFn: () => itemsApi.listDisposalDocuments(itemId),
+    enabled: !!itemId && (item?.status === 'pending_disposal' || item?.status === 'disposed'),
+  })
+
+  const isDisposed = item?.status === 'disposed'
 
   const { data: buildings = [] } = useQuery({
     queryKey: ['buildings'],
@@ -177,11 +187,40 @@ export function ItemDetailPage() {
   })
 
   const disposeMutation = useMutation({
-    mutationFn: () => itemsApi.dispose(itemId),
+    mutationFn: () => itemsApi.initiateDisposal(itemId),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['item', itemId], updated)
+      queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['audit', itemId] })
+      setConfirmDispose(false)
+      toast.success(t('items.disposal_initiated'))
+    },
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
+  })
+
+  const finalizeMutation = useMutation({
+    mutationFn: () => itemsApi.finalizeDisposal(itemId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['items'] })
-      navigate('/items', { replace: true })
+      queryClient.invalidateQueries({ queryKey: ['audit', itemId] })
+      setConfirmFinalize(false)
+      toast.success(t('items.disposal_finalized'))
     },
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
+  })
+
+  const docMutation = useMutation({
+    mutationFn: (file: File) => itemsApi.uploadDisposalDocument(itemId, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['disposal-docs', itemId] })
+      toast.success(t('items.document_uploaded'))
+    },
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
+  })
+
+  const deleteDocMutation = useMutation({
+    mutationFn: (docId: number) => itemsApi.deleteDisposalDocument(itemId, docId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['disposal-docs', itemId] }),
     onError: (err) => toast.error(t(translateError((err as Error).message))),
   })
 
@@ -205,12 +244,16 @@ export function ItemDetailPage() {
   if (!item) return null
 
   const isAdmin = user?.role === 'admin'
-  const canEdit = item.status !== 'disposed'
-  // Dispose is available for active and in_repair items (admin only).
-  const canDispose = isAdmin && item.status !== 'disposed'
+  const canEdit = item.status !== 'disposed' && item.status !== 'pending_disposal'
+  const canDispose = isAdmin && (item.status === 'active' || item.status === 'in_repair')
+  const isPendingDisposal = item.status === 'pending_disposal'
 
   const statusBadge = {
     disposed: { label: t('items.disposed_badge'), cls: 'bg-destructive/10 text-destructive' },
+    pending_disposal: {
+      label: t('items.pending_disposal_badge'),
+      cls: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+    },
     in_repair: {
       label: t('items.in_repair_badge'),
       cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
@@ -249,7 +292,7 @@ export function ItemDetailPage() {
                 : t('items.send_to_repair')}
             </button>
 
-            {/* Dispose — active AND in_repair, admin only */}
+            {/* Dispose */}
             {canDispose && (
               <button
                 onClick={() => setConfirmDispose(true)}
@@ -260,6 +303,23 @@ export function ItemDetailPage() {
               </button>
             )}
           </div>
+        )}
+
+        {/* Finalize disposal button for pending_disposal status */}
+        {isPendingDisposal && isAdmin && (
+          <button
+            onClick={() => {
+              if (disposalDocs.length === 0) {
+                toast.error(t('items.disposal_document_required'))
+              } else {
+                setConfirmFinalize(true)
+              }
+            }}
+            className="flex items-center gap-1.5 rounded-md bg-destructive text-destructive-foreground px-3 py-1.5 text-sm font-medium hover:bg-destructive/90 transition-colors"
+          >
+            <Trash2 size={15} />
+            {t('items.finalize_disposal')}
+          </button>
         )}
       </div>
 
@@ -476,6 +536,127 @@ export function ItemDetailPage() {
         </div>
       )}
 
+      {/* Disposal documents section for pending_disposal status */}
+      {isPendingDisposal && isAdmin && (
+        <div className="space-y-2 border-t pt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground font-medium">
+              {t('items.disposal_documents')}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {disposalDocs.length} / 5
+            </span>
+          </div>
+
+          {disposalDocs.length > 0 ? (
+            <div className="space-y-2">
+              {disposalDocs.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between rounded-lg border p-3 bg-muted/30"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <FileText size={18} className="shrink-0 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.filename}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(doc.uploaded_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={doc.url}
+                      download
+                      className="p-1.5 rounded hover:bg-accent transition-colors"
+                      title={t('items.download_document')}
+                    >
+                      <Download size={16} />
+                    </a>
+                    <button
+                      onClick={() => deleteDocMutation.mutate(doc.id)}
+                      className="p-1.5 rounded hover:bg-destructive/10 text-destructive transition-colors"
+                      title={t('common.delete')}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {disposalDocs.length < 5 && (
+                <button
+                  onClick={() => docInputRef.current?.click()}
+                  className="w-full rounded-lg border-2 border-dashed border-border flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  <FileText size={18} />
+                  {t('items.upload_document')}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div
+              className="rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground cursor-pointer hover:border-primary hover:text-primary transition-colors"
+              onClick={() => docInputRef.current?.click()}
+            >
+              <FileText size={28} />
+              <span className="text-sm">{t('items.upload_document')}</span>
+              <span className="text-xs">{t('items.disposal_document_hint')}</span>
+            </div>
+          )}
+          <input
+            ref={docInputRef}
+            type="file"
+            accept=".doc,.docx,.pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) { docMutation.mutate(file); e.target.value = '' }
+            }}
+          />
+        </div>
+      )}
+
+      {/* Disposal documents section for disposed items (read-only) */}
+      {isDisposed && disposalDocs.length > 0 && (
+        <div className="space-y-2 border-t pt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground font-medium">
+              {t('items.disposal_documents')}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {disposalDocs.length}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {disposalDocs.map((doc) => (
+              <div
+                key={doc.id}
+                className="flex items-center justify-between rounded-lg border p-3 bg-muted/30"
+              >
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <FileText size={18} className="shrink-0 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{doc.filename}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(doc.uploaded_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={doc.url}
+                  download
+                  className="p-1.5 rounded hover:bg-accent transition-colors"
+                  title={t('items.download_document')}
+                >
+                  <Download size={16} />
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Audit log */}
       <div className="border-t pt-4 space-y-3">
         <button
@@ -501,10 +682,35 @@ export function ItemDetailPage() {
                 {t('common.cancel')}
               </button>
               <button
-                onClick={() => { setConfirmDispose(false); disposeMutation.mutate() }}
-                className="flex-1 rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:bg-destructive/90 transition-colors"
+                onClick={() => disposeMutation.mutate()}
+                disabled={disposeMutation.isPending}
+                className="flex-1 rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 transition-colors"
               >
                 {t('items.dispose')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Finalize disposal confirm dialog */}
+      {confirmFinalize && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-card rounded-xl p-6 max-w-sm w-full space-y-4">
+            <p className="text-sm">{t('items.finalize_disposal_confirm')}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmFinalize(false)}
+                className="flex-1 rounded-md border px-4 py-2 text-sm hover:bg-accent transition-colors"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={() => finalizeMutation.mutate()}
+                disabled={finalizeMutation.isPending}
+                className="flex-1 rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 transition-colors"
+              >
+                {t('items.finalize_disposal')}
               </button>
             </div>
           </div>

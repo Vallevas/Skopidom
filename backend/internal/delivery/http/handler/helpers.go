@@ -77,6 +77,10 @@ func handleError(w http.ResponseWriter, err error) {
 		// Validation messages describe the request — always safe to expose.
 		respond(w, http.StatusBadRequest, errorResponse{Error: err.Error()})
 
+	case errors.Is(err, logger.ErrConflict):
+		respond(w, http.StatusConflict,
+			userFacingError(err.Error(), err))
+
 	default:
 		// Always log the full error for operators.
 		slog.Error("unhandled internal error", "err", err)

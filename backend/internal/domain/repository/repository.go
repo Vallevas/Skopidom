@@ -58,6 +58,7 @@ type UserRepository interface {
 type CategoryRepository interface {
 	Create(ctx context.Context, category *entity.Category) error
 	GetByID(ctx context.Context, id uint64) (*entity.Category, error)
+	GetByName(ctx context.Context, name string) (*entity.Category, error)
 	List(ctx context.Context) ([]*entity.Category, error)
 	Update(ctx context.Context, category *entity.Category) error
 	Delete(ctx context.Context, id uint64) error
@@ -67,6 +68,7 @@ type CategoryRepository interface {
 type RoomRepository interface {
 	Create(ctx context.Context, room *entity.Room) error
 	GetByID(ctx context.Context, id uint64) (*entity.Room, error)
+	GetByNameAndBuilding(ctx context.Context, name string, buildingID uint64) (*entity.Room, error)
 	ListByBuilding(ctx context.Context, buildingID uint64) ([]*entity.Room, error)
 	List(ctx context.Context) ([]*entity.Room, error)
 	Update(ctx context.Context, room *entity.Room) error
@@ -77,6 +79,7 @@ type RoomRepository interface {
 type BuildingRepository interface {
 	Create(ctx context.Context, building *entity.Building) error
 	GetByID(ctx context.Context, id uint64) (*entity.Building, error)
+	GetByName(ctx context.Context, name string) (*entity.Building, error)
 	List(ctx context.Context) ([]*entity.Building, error)
 	Update(ctx context.Context, building *entity.Building) error
 	Delete(ctx context.Context, id uint64) error
@@ -86,4 +89,18 @@ type BuildingRepository interface {
 type AuditLogger interface {
 	Log(ctx context.Context, event *entity.AuditEvent) error
 	ListByItem(ctx context.Context, itemID uint64) ([]*entity.AuditEvent, error)
+}
+
+// DisposalDocumentRepository defines the persistence contract for disposal documents.
+type DisposalDocumentRepository interface {
+	// Create stores a new disposal document and returns the created record.
+	Create(ctx context.Context, doc *entity.DisposalDocument) error
+	// GetByID retrieves a single disposal document by its ID.
+	GetByID(ctx context.Context, id uint64) (*entity.DisposalDocument, error)
+	// ListByItem returns all disposal documents for the given item.
+	ListByItem(ctx context.Context, itemID uint64) ([]*entity.DisposalDocument, error)
+	// CountByItem returns the number of disposal documents for the given item.
+	CountByItem(ctx context.Context, itemID uint64) (int64, error)
+	// Delete removes a disposal document by its ID, verifying it belongs to itemID.
+	Delete(ctx context.Context, docID uint64, itemID uint64) error
 }
