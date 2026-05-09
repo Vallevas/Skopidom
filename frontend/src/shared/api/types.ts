@@ -147,6 +147,23 @@ export interface DisposalDocument {
   uploader?: User
 }
 
+// Item relation types
+export interface ItemRelation {
+  id: number
+  item_id_1: number
+  item_id_2: number
+  created_at: string
+  created_by: number
+  creator?: User
+  // Related item data (the other item in the relation)
+  related_item?: Item
+}
+
+export interface LinkItemsRequest {
+  item_id_1: number
+  item_id_2: number
+}
+
 export interface ApiError {
   error: string
   detail?: string

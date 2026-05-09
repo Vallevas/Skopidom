@@ -8,6 +8,8 @@ import type {
   Item,
   ItemFilter,
   ItemPhoto,
+  ItemRelation,
+  LinkItemsRequest,
   LoginRequest,
   LoginResponse,
   MoveToRoomRequest,
@@ -144,6 +146,13 @@ export const itemsApi = {
   },
   deleteDisposalDocument: (itemId: number, docId: number) =>
     request<void>(`/items/${itemId}/disposal-documents/${docId}`, { method: 'DELETE' }),
+
+  // Item relations
+  getLinkedItems: (id: number) => request<ItemRelation[]>(`/items/${id}/relations`),
+  linkItems: (body: LinkItemsRequest) =>
+    request<ItemRelation>('/items/relations', { method: 'POST', body: JSON.stringify(body) }),
+  unlinkItems: (relationId: number) =>
+    request<void>(`/items/relations/${relationId}`, { method: 'DELETE' }),
 }
 
 export const usersApi = {

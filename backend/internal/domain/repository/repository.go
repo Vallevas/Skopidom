@@ -104,3 +104,17 @@ type DisposalDocumentRepository interface {
 	// Delete removes a disposal document by its ID, verifying it belongs to itemID.
 	Delete(ctx context.Context, docID uint64, itemID uint64) error
 }
+
+// ItemRelationRepository defines the persistence contract for item relations.
+type ItemRelationRepository interface {
+	// Create establishes a symmetric relation between two items.
+	Create(ctx context.Context, itemID1, itemID2, createdBy uint64) (*entity.ItemRelation, error)
+	// GetByItemID returns all relations involving the given item.
+	GetByItemID(ctx context.Context, itemID uint64) ([]*entity.ItemRelation, error)
+	// GetLinkedItems returns all items linked to the given item.
+	GetLinkedItems(ctx context.Context, itemID uint64) ([]*entity.Item, error)
+	// Delete removes a relation by its ID.
+	Delete(ctx context.Context, relationID uint64) error
+	// Exists checks if a relation exists between two items.
+	Exists(ctx context.Context, itemID1, itemID2 uint64) (bool, error)
+}

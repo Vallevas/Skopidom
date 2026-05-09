@@ -4,14 +4,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft, Pencil, Trash2, Camera, X, ChevronDown, ChevronUp,
-  Wrench, ChevronLeft, ChevronRight, FileText, Download,
+  Wrench, ChevronLeft, ChevronRight, FileText, Download, Link as LinkIcon,
 } from 'lucide-react'
 import { itemsApi, buildingsApi, roomsApi, translateError } from '@/shared/api/client'
-import type { ItemPhoto } from '@/shared/api/types'
+import type { ItemPhoto, ItemRelation } from '@/shared/api/types'
 import { useAuth } from '@/app/auth-context'
 import { useToast } from '@/app/toast-context'
 import { AuditLog } from './AuditLog'
 import { cn } from '@/shared/ui/utils'
+import { LinkedItemsList } from './components/LinkedItemsList'
+import { ItemLinkSelector } from './components/ItemLinkSelector'
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 
@@ -135,6 +137,12 @@ export function ItemDetailPage() {
     enabled: !!itemId && (item?.status === 'pending_disposal' || item?.status === 'disposed'),
   })
 
+  const { data: relations = [] } = useQuery({
+    queryKey: ['relations', itemId],
+    queryFn: () => itemsApi.getLinkedItems(itemId),
+    enabled: !!itemId,
+  })
+
   const isDisposed = item?.status === 'disposed'
 
   const { data: buildings = [] } = useQuery({
@@ -234,6 +242,15 @@ export function ItemDetailPage() {
       setSelectedBuildingId(undefined)
       setSelectedRoomId(undefined)
       toast.success(t('items.moved'))
+    },
+    onError: (err) => toast.error(t(translateError((err as Error).message))),
+  })
+
+  const linkMutation = useMutation({
+    mutationFn: (linkedItemId: number) => itemsApi.linkItems({ item_id_1: itemId, item_id_2: linkedItemId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['relations', itemId] })
+      toast.success(t('common.success'))
     },
     onError: (err) => toast.error(t(translateError((err as Error).message))),
   })
@@ -667,6 +684,28 @@ export function ItemDetailPage() {
           {t('items.audit_log')}
         </button>
         {showAudit && <AuditLog itemId={itemId} />}
+      </div>
+
+      {/* Linked items section */}
+      {canEdit && (
+        <div className="border-t pt-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <LinkIcon size={16} />
+            <span className="font-medium">{t('items.linked_items')}</span>
+          </div>
+          <ItemLinkSelector currentItemId={itemId} onLinkSelect={(linkedId) => linkMutation.mutate(linkedId)} />
+          {linkMutation.isPending && (
+            <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+          )}
+          {linkMutation.error && (
+            <p className="text-sm text-destructive">{t(translateError((linkMutation.error as Error).message))}</p>
+          )}
+        </div>
+      )}
+
+      {/* Display linked items */}
+      <div className="border-t pt-4 space-y-3">
+        <LinkedItemsList itemId={itemId} relations={relations} canEdit={canEdit} />
       </div>
 
       {/* Dispose confirm dialog */}

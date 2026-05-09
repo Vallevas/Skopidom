@@ -5,7 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { itemsApi, roomsApi } from '@/shared/api/client'
-import type { Building, Category } from '@/shared/api/types'
+import type { Building, Category, Item } from '@/shared/api/types'
+import { Search, X } from 'lucide-react'
 
 const schema = z.object({
   barcode: z.string().min(1),
@@ -15,6 +16,7 @@ const schema = z.object({
   building_id: z.coerce.number().min(1),
   room_id: z.coerce.number().min(1),
   description: z.string().optional(),
+  linked_item_id: z.coerce.number().min(1).optional().or(z.literal(0)),
 })
 
 type FormData = z.infer<typeof schema>
@@ -31,6 +33,9 @@ export function CreateItemDialog({ open, onClose, categories, buildings, initial
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>()
+  const [linkedItemSearchOpen, setLinkedItemSearchOpen] = useState(false)
+  const [linkedItemQuery, setLinkedItemQuery] = useState('')
+  const [selectedLinkedItem, setSelectedLinkedItem] = useState<Item | null>(null)
 
   const {
     register,
@@ -47,12 +52,34 @@ export function CreateItemDialog({ open, onClose, categories, buildings, initial
     enabled: !!selectedBuildingId,
   })
 
+  const { data: allItems = [] } = useQuery({
+    queryKey: ['items'],
+    queryFn: () => itemsApi.list(),
+    enabled: linkedItemSearchOpen,
+  })
+
+  const filteredItems = allItems.filter(
+    (item) =>
+      item.name.toLowerCase().includes(linkedItemQuery.toLowerCase()) ||
+      item.barcode.toLowerCase().includes(linkedItemQuery.toLowerCase()) ||
+      item.inventory_number.toLowerCase().includes(linkedItemQuery.toLowerCase())
+  )
+
   const mutation = useMutation({
-    mutationFn: (data: Omit<FormData, 'building_id'>) => itemsApi.create(data),
+    mutationFn: async (data: Omit<FormData, 'building_id' | 'linked_item_id'> & { linked_item_id?: number }) => {
+      const newItem = await itemsApi.create(data)
+      // If a linked item was selected, create the relation after item creation
+      if (data.linked_item_id && data.linked_item_id > 0) {
+        await itemsApi.linkItems({ item_id_1: newItem.id, item_id_2: data.linked_item_id })
+      }
+      return newItem
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['items'] })
       reset()
       setSelectedBuildingId(undefined)
+      setSelectedLinkedItem(null)
+      setLinkedItemSearchOpen(false)
       onClose()
     },
   })
@@ -71,6 +98,9 @@ export function CreateItemDialog({ open, onClose, categories, buildings, initial
   function handleClose() {
     reset()
     setSelectedBuildingId(undefined)
+    setSelectedLinkedItem(null)
+    setLinkedItemSearchOpen(false)
+    setLinkedItemQuery('')
     onClose()
   }
 
@@ -140,6 +170,94 @@ export function CreateItemDialog({ open, onClose, categories, buildings, initial
 
             <Field label={t('items.description')}>
               <textarea className={inputCls + ' resize-none'} rows={2} {...register('description')} />
+            </Field>
+
+            {/* Linked item selector */}
+            <Field label={t('items.linked_items')}>
+              {!linkedItemSearchOpen ? (
+                <div className="space-y-2">
+                  {selectedLinkedItem ? (
+                    <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
+                      <div className="flex-1">
+                        <span className="font-medium text-sm">{selectedLinkedItem.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          ({selectedLinkedItem.barcode})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedLinkedItem(null)
+                          setValue('linked_item_id', 0)
+                        }}
+                        className="rounded-md p-1 hover:bg-accent transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setLinkedItemSearchOpen(true)}
+                      className="flex items-center gap-2 w-full rounded-md border px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Search size={16} />
+                      {t('items.link_item')}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                      <input
+                        type="text"
+                        value={linkedItemQuery}
+                        onChange={(e) => setLinkedItemQuery(e.target.value)}
+                        placeholder={t('items.search')}
+                        className="w-full rounded-md border bg-background pl-8 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        autoFocus
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLinkedItemSearchOpen(false)
+                        setLinkedItemQuery('')
+                      }}
+                      className="rounded-md p-1 hover:bg-accent transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  <div className="max-h-48 overflow-y-auto space-y-1 rounded-md border">
+                    {filteredItems.length === 0 ? (
+                      <p className="text-sm text-muted-foreground p-2">{t('items.no_items_found')}</p>
+                    ) : (
+                      filteredItems.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedLinkedItem(item)
+                            setValue('linked_item_id', item.id)
+                            setLinkedItemSearchOpen(false)
+                            setLinkedItemQuery('')
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+                        >
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({item.barcode})
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </Field>
 
             {mutation.error && (

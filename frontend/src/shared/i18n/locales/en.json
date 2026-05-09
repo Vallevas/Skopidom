@@ -71,7 +71,11 @@
     "finalize_disposal": "Finalize disposal",
     "finalize_disposal_confirm": "Are you sure? After finalizing, the item will be permanently disposed. This action is irreversible.",
     "disposal_initiated": "Item moved to 'Pending disposal' status",
-    "disposal_finalized": "Disposal finalized"
+    "disposal_finalized": "Disposal finalized",
+    "link_item": "Link item",
+    "linked_items": "Linked items",
+    "unlink_item": "Unlink item",
+    "no_items_found": "No items found"
   },
   "scanner": {
     "title": "Serial Number Scanner",
@@ -158,6 +162,7 @@
     "close": "Close",
     "back": "Back",
     "required": "Required field",
-    "unknown_error": "An unknown error occurred"
+    "unknown_error": "An unknown error occurred",
+    "unknown": "Unknown"
   }
 }

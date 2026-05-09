@@ -33,6 +33,11 @@ type UseCase interface {
 	ListDisposalDocuments(ctx context.Context, itemID uint64) ([]*entity.DisposalDocument, error)
 	DeleteDisposalDocument(ctx context.Context, itemID uint64, docID uint64, actorID uint64) error
 	FinalizeDisposal(ctx context.Context, itemID uint64, actorID uint64) (*entity.Item, error)
+
+	// Item relation methods.
+	LinkItems(ctx context.Context, itemID1, itemID2, actorID uint64) (*entity.ItemRelation, error)
+	UnlinkItems(ctx context.Context, relationID uint64, actorID uint64) error
+	GetLinkedItems(ctx context.Context, itemID uint64) ([]*entity.Item, error)
 }
 
 // CreateInput holds the data required to register a new inventory item.
@@ -61,6 +66,7 @@ type itemUseCase struct {
 	photos       repository.PhotoRepository
 	disposalDocs repository.DisposalDocumentRepository
 	audit        repository.AuditLogger
+	relations    repository.ItemRelationRepository
 }
 
 // New constructs an itemUseCase with all required repository dependencies.
@@ -71,6 +77,7 @@ func New(
 	photos repository.PhotoRepository,
 	disposalDocs repository.DisposalDocumentRepository,
 	audit repository.AuditLogger,
+	relations repository.ItemRelationRepository,
 ) UseCase {
 	return &itemUseCase{
 		items:        items,
@@ -79,6 +86,7 @@ func New(
 		photos:       photos,
 		disposalDocs: disposalDocs,
 		audit:        audit,
+		relations:    relations,
 	}
 }
 
