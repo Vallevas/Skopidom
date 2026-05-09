@@ -32,6 +32,16 @@ type ItemRepository interface {
 	MoveToRoom(ctx context.Context, itemID uint64, roomID uint64, actorID uint64) error
 }
 
+// ItemRelationRepository defines the persistence contract for item relations.
+type ItemRelationRepository interface {
+	// LinkItems creates a relation between two items.
+	LinkItems(ctx context.Context, itemID, relatedItemID, actorID uint64) error
+	// ListByItem returns all relations where the given item is the source.
+	ListByItem(ctx context.Context, itemID uint64) ([]*entity.ItemRelation, error)
+	// UnlinkItems removes a relation between two items.
+	UnlinkItems(ctx context.Context, itemID, relatedItemID uint64) error
+}
+
 // PhotoRepository defines the persistence contract for item photos.
 type PhotoRepository interface {
 	// Add stores a new photo URL for an item and returns the created record.

@@ -17,6 +17,17 @@ const (
 	StatusDisposed ItemStatus = "disposed"
 )
 
+// ItemRelation represents a link between two items (e.g., computer + monitor).
+type ItemRelation struct {
+	ID            uint64    `json:"id"`
+	ItemID        uint64    `json:"item_id"`
+	RelatedItemID uint64    `json:"related_item_id"`
+	RelatedItem   *Item     `json:"related_item,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	CreatedBy     uint64    `json:"created_by"`
+	Creator       *User     `json:"creator,omitempty"`
+}
+
 // Item is the central inventory record tracked by the system.
 type Item struct {
 	ID uint64 `json:"id"`

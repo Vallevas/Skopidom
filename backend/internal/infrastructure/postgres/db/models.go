@@ -98,6 +98,29 @@ type ItemPhoto struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type ItemRelation struct {
+	ID              int64     `json:"id"`
+	ItemID          int64     `json:"item_id"`
+	RelatedItemID   int64     `json:"related_item_id"`
+	CreatedAt       time.Time `json:"created_at"`
+	CreatedBy       int64     `json:"created_by"`
+	RelatedItemID2  int64     `json:"related_item:id"`
+	RelatedBarcode  string    `json:"related_item:barcode"`
+	RelatedInvNum   string    `json:"related_item:inventory_number"`
+	RelatedName     string    `json:"related_item:name"`
+	RelatedCategory int64     `json:"related_item:category_id"`
+	RelatedRoom     int64     `json:"related_item:room_id"`
+	RelatedDesc     string    `json:"related_item:description"`
+	RelatedStatus   string    `json:"related_item:status"`
+	RelatedTxHash   string    `json:"related_item:tx_hash"`
+	RelatedCreatedAt time.Time `json:"related_item:created_at"`
+	RelatedUpdatedAt time.Time `json:"related_item:updated_at"`
+	RelatedCreatedBy int64     `json:"related_item:created_by"`
+	RelatedEditedBy  int64     `json:"related_item:last_edited_by"`
+	RelatedPending   sql.NullTime `json:"related_item:pending_disposal_at"`
+	RelatedDisposed  sql.NullTime `json:"related_item:disposed_at"`
+}
+
 type Room struct {
 	ID         int64  `json:"id"`
 	Name       string `json:"name"`
