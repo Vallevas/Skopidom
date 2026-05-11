@@ -70,3 +70,45 @@ func (r *PhotoRepo) Delete(ctx context.Context, photoID uint64, itemID uint64) e
 	}
 	return nil
 }
+
+// GetPhotoData retrieves the Base64-encoded data for a specific photo.
+func (r *PhotoRepo) GetPhotoData(ctx context.Context, photoID uint64) (*entity.ItemPhotoData, error) {
+	row, err := r.queries.GetItemPhotoData(ctx, int64(photoID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, logger.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("PhotoRepo.GetPhotoData: %w", err)
+	}
+	return &entity.ItemPhotoData{
+		ID:        uint64(row.ID),
+		PhotoID:   uint64(row.PhotoID),
+		Data:      row.Data,
+		MimeType:  row.MimeType,
+		CreatedAt: row.CreatedAt,
+	}, nil
+}
+
+// SavePhotoData stores or updates the Base64-encoded data for a photo.
+func (r *PhotoRepo) SavePhotoData(ctx context.Context, data *entity.ItemPhotoData) error {
+	row, err := r.queries.UpsertItemPhotoData(ctx, db.UpsertItemPhotoDataParams{
+		PhotoID:  int64(data.PhotoID),
+		Data:     data.Data,
+		MimeType: data.MimeType,
+	})
+	if err != nil {
+		return fmt.Errorf("PhotoRepo.SavePhotoData: %w", err)
+	}
+	data.ID = uint64(row.ID)
+	data.CreatedAt = row.CreatedAt
+	return nil
+}
+
+// DeletePhotoData removes the binary data for a photo.
+func (r *PhotoRepo) DeletePhotoData(ctx context.Context, photoID uint64) error {
+	err := r.queries.DeleteItemPhotoData(ctx, int64(photoID))
+	if err != nil {
+		return fmt.Errorf("PhotoRepo.DeletePhotoData: %w", err)
+	}
+	return nil
+}

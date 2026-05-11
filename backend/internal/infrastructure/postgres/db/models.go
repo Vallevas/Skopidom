@@ -98,6 +98,14 @@ type ItemPhoto struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type ItemPhotoData struct {
+	ID        int64     `json:"id"`
+	PhotoID   int64     `json:"photo_id"`
+	Data      []byte    `json:"data"`
+	MimeType  string    `json:"mime_type"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Room struct {
 	ID         int64  `json:"id"`
 	Name       string `json:"name"`

@@ -1,49 +1,31 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-backend/bin/
-
-# Test binary, built with `go test -c`
-*.test
-
-# Code coverage profiles and other test artifacts
+```
+# Compiled and build artifacts
+*.o
+*.obj
 *.out
-coverage.*
-*.coverprofile
-profile.cov
 
-# Dependency directories
-# vendor/
-frontend/node_modules
+# Dependencies
+vendor/
 
-# Tests
-curl_tests/
-skopidom_file_structure.txt
+# Logs and temp files
+*.log
+*.tmp
 
-# local testing
-*-key.pem
-*.pem
-vite.config.ts
-tsconfig.tsbuildinfo
-frontend/dist/
-frontend/ssl/
-
-# Go workspace file
-go.work
-go.work.sum
-
-# Dev storage
-backend/uploads/
-frontend/dist/
-*.csv
-
-# env file
+# Environment
 .env
+.env.local
+.env.*
 
-# Editor/IDE
-.idea/
+# Editors
 .vscode/
-opencode.json
+.idea/
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Go-specific
+*.test
+*.prof
+```

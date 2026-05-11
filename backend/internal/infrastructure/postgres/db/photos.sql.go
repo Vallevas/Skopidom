@@ -58,6 +58,34 @@ func (q *Queries) DeleteItemPhoto(ctx context.Context, arg DeleteItemPhotoParams
 	return err
 }
 
+const deleteItemPhotoData = `-- name: DeleteItemPhotoData :exec
+DELETE FROM item_photos_data WHERE photo_id = $1
+`
+
+func (q *Queries) DeleteItemPhotoData(ctx context.Context, photoID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteItemPhotoData, photoID)
+	return err
+}
+
+const getItemPhotoData = `-- name: GetItemPhotoData :one
+SELECT id, photo_id, data, mime_type, created_at
+FROM item_photos_data
+WHERE photo_id = $1
+`
+
+func (q *Queries) GetItemPhotoData(ctx context.Context, photoID int64) (ItemPhotoData, error) {
+	row := q.db.QueryRowContext(ctx, getItemPhotoData, photoID)
+	var i ItemPhotoData
+	err := row.Scan(
+		&i.ID,
+		&i.PhotoID,
+		&i.Data,
+		&i.MimeType,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listItemPhotos = `-- name: ListItemPhotos :many
 SELECT id, item_id, url, created_at
 FROM item_photos
@@ -91,4 +119,31 @@ func (q *Queries) ListItemPhotos(ctx context.Context, itemID int64) ([]ItemPhoto
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertItemPhotoData = `-- name: UpsertItemPhotoData :one
+INSERT INTO item_photos_data (photo_id, data, mime_type)
+VALUES ($1, $2, $3)
+ON CONFLICT (photo_id) DO UPDATE
+SET data = EXCLUDED.data, mime_type = EXCLUDED.mime_type
+RETURNING id, photo_id, data, mime_type, created_at
+`
+
+type UpsertItemPhotoDataParams struct {
+	PhotoID  int64 `json:"photo_id"`
+	Data     []byte `json:"data"`
+	MimeType string `json:"mime_type"`
+}
+
+func (q *Queries) UpsertItemPhotoData(ctx context.Context, arg UpsertItemPhotoDataParams) (ItemPhotoData, error) {
+	row := q.db.QueryRowContext(ctx, upsertItemPhotoData, arg.PhotoID, arg.Data, arg.MimeType)
+	var i ItemPhotoData
+	err := row.Scan(
+		&i.ID,
+		&i.PhotoID,
+		&i.Data,
+		&i.MimeType,
+		&i.CreatedAt,
+	)
+	return i, err
 }

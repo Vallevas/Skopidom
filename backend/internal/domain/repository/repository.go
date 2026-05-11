@@ -40,6 +40,14 @@ type PhotoRepository interface {
 	ListByItem(ctx context.Context, itemID uint64) ([]*entity.ItemPhoto, error)
 	// Delete removes a single photo by its ID, verifying it belongs to itemID.
 	Delete(ctx context.Context, photoID uint64, itemID uint64) error
+
+	// PhotoDataRepository defines operations for storing heavy binary data separately.
+	// GetPhotoData retrieves the Base64-encoded data for a specific photo.
+	GetPhotoData(ctx context.Context, photoID uint64) (*entity.ItemPhotoData, error)
+	// SavePhotoData stores or updates the Base64-encoded data for a photo.
+	SavePhotoData(ctx context.Context, data *entity.ItemPhotoData) error
+	// DeletePhotoData removes the binary data for a photo (called when deleting the photo).
+	DeletePhotoData(ctx context.Context, photoID uint64) error
 }
 
 // UserRepository defines the persistence contract for system users.
