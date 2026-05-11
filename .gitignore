@@ -1,29 +1,50 @@
-```
-# Dependencies
-node_modules/
-# Build artifacts
-dist/
-build/
-target/
-# Environment
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+backend/bin/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Dependency directories
+# vendor/
+frontend/node_modules
+backend/blockchain/node_modules/
+
+# Tests
+curl_tests/
+skopidom_file_structure.txt
+
+# local testing
+*-key.pem
+*.pem
+vite.config.ts
+tsconfig.tsbuildinfo
+frontend/dist/
+frontend/ssl/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Dev storage
+backend/uploads/
+frontend/dist/
+*.csv
+
+# env file
 .env
-.env.local
-*.env.*
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-# Logs
-*.log
-# Temporary files
-*.tmp
-*.swp
-*~
-# IDE
-.vscode/
+
+# Editor/IDE
 .idea/
-.DS_Store
-Thumbs.db
-```
+.vscode/
+opencode.json

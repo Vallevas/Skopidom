@@ -114,6 +114,17 @@ seed-dry-run: ## Validate CSV without importing (usage: make seed-dry-run FILE=i
 	fi
 	cd $(BACKEND_DIR) && go run ./cmd/seed --file=$(FILE) --user=dummy@example.com --dry-run
 
+# ── Blockchain ────────────────────────────────────────────────────────────────
+.PHONY: generate-contract
+generate-contract: ## Generate Ganache contract
+	@echo "Generating Go bindings for smart contract..."
+	cd ./backend && abigen --abi blockchain/build/InventoryAudit.abi \
+		--bin blockchain/build/InventoryAudit.bin \
+		--pkg blockchain \
+		--out internal/infrastructure/blockchain/inventory_audit.go
+	@echo "✅ Contract bindings generated"
+
+
 # ── Help ──────────────────────────────────────────────────────────────────────
 
 .PHONY: help

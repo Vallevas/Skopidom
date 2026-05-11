@@ -108,14 +108,14 @@ contract InventoryAudit {
         uint256,
         string memory
     ) {
-        AuditEvent memory event = _events[eventId];
+        AuditEvent memory entry = _events[eventId];
         return (
-            event.eventId,
-            event.itemId,
-            event.action,
-            event.actor,
-            event.timestamp,
-            event.payload
+            entry.eventId,
+            entry.itemId,
+            entry.action,
+            entry.actor,
+            entry.timestamp,
+            entry.payload
         );
     }
 
