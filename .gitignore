@@ -10,11 +10,12 @@ vendor/
 # Logs and temp files
 *.log
 *.tmp
+*.swp
 
 # Environment
 .env
 .env.local
-.env.*
+*.env.*
 
 # Editors
 .vscode/
@@ -25,7 +26,8 @@ coverage/
 htmlcov/
 .coverage
 
-# Go-specific
-*.test
-*.prof
+# Build directories
+target/
+build/
+dist/
 ```
