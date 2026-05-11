@@ -4,6 +4,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const useHttps = fs.existsSync('./ssl/192.168.1.108-key.pem') && fs.existsSync('./ssl/192.168.1.108.pem')
+
 export default defineConfig({
   plugins: [
     react(),
@@ -52,10 +54,14 @@ export default defineConfig({
     },
   },
   server: {
-    https: {
-      key: fs.readFileSync('./ssl/192.168.1.108-key.pem'),
-      cert: fs.readFileSync('./ssl/192.168.1.108.pem'),
-    },
+    ...(useHttps
+      ? {
+        https: {
+          key: fs.readFileSync('./ssl/192.168.1.108-key.pem'),
+          cert: fs.readFileSync('./ssl/192.168.1.108.pem'),
+        },
+      }
+      : {}),
     host: true,
     proxy: {
       '/api': {
