@@ -52,10 +52,10 @@ export default defineConfig({
     },
   },
   server: {
-    // https: {
-    //   key: fs.readFileSync('./ssl/10.3.100.81-key.pem'),
-    //   cert: fs.readFileSync('./ssl/10.3.100.81.pem'),
-    // },
+    https: {
+      key: fs.readFileSync('./ssl/192.168.1.108-key.pem'),
+      cert: fs.readFileSync('./ssl/192.168.1.108.pem'),
+    },
     host: true,
     proxy: {
       '/api': {
