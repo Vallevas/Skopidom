@@ -206,9 +206,29 @@ func (uc *itemUseCase) AddPhoto(
 	if !item.IsMutable() {
 		return nil, fmt.Errorf("item %d: %w", itemID, logger.ErrDisposed)
 	}
-	photo := &entity.ItemPhoto{ItemID: itemID, URL: url}
+	photo := &entity.ItemPhoto{ItemID: itemID, Base64Data: url, MimeType: "image/jpeg"}
 	if err := uc.photos.Add(ctx, photo); err != nil {
 		return nil, fmt.Errorf("item.AddPhoto persist: %w", err)
+	}
+	return photo, nil
+}
+
+// AddPhotoWithEntity stores a new photo entity for an item.
+func (uc *itemUseCase) AddPhotoWithEntity(
+	ctx context.Context,
+	itemID uint64,
+	photo *entity.ItemPhoto,
+	actorID uint64,
+) (*entity.ItemPhoto, error) {
+	item, err := uc.items.GetByID(ctx, itemID)
+	if err != nil {
+		return nil, fmt.Errorf("item.AddPhotoWithEntity fetch: %w", err)
+	}
+	if !item.IsMutable() {
+		return nil, fmt.Errorf("item %d: %w", itemID, logger.ErrDisposed)
+	}
+	if err := uc.photos.Add(ctx, photo); err != nil {
+		return nil, fmt.Errorf("item.AddPhotoWithEntity persist: %w", err)
 	}
 	return photo, nil
 }

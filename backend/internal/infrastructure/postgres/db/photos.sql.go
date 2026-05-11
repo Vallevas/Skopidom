@@ -11,24 +11,26 @@ import (
 
 const addItemPhoto = `-- name: AddItemPhoto :one
 
-INSERT INTO item_photos (item_id, url)
-VALUES ($1, $2)
-RETURNING id, item_id, url, created_at
+INSERT INTO item_photos (item_id, base64_data, mime_type)
+VALUES ($1, $2, $3)
+RETURNING id, item_id, base64_data, mime_type, created_at
 `
 
 type AddItemPhotoParams struct {
-	ItemID int64  `json:"item_id"`
-	Url    string `json:"url"`
+	ItemID     int64  `json:"item_id"`
+	Base64Data string `json:"base64_data"`
+	MimeType   string `json:"mime_type"`
 }
 
 // queries/photos.sql
 func (q *Queries) AddItemPhoto(ctx context.Context, arg AddItemPhotoParams) (ItemPhoto, error) {
-	row := q.db.QueryRowContext(ctx, addItemPhoto, arg.ItemID, arg.Url)
+	row := q.db.QueryRowContext(ctx, addItemPhoto, arg.ItemID, arg.Base64Data, arg.MimeType)
 	var i ItemPhoto
 	err := row.Scan(
 		&i.ID,
 		&i.ItemID,
-		&i.Url,
+		&i.Base64Data,
+		&i.MimeType,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -59,7 +61,7 @@ func (q *Queries) DeleteItemPhoto(ctx context.Context, arg DeleteItemPhotoParams
 }
 
 const listItemPhotos = `-- name: ListItemPhotos :many
-SELECT id, item_id, url, created_at
+SELECT id, item_id, base64_data, mime_type, created_at
 FROM item_photos
 WHERE item_id = $1
 ORDER BY created_at ASC
@@ -77,7 +79,8 @@ func (q *Queries) ListItemPhotos(ctx context.Context, itemID int64) ([]ItemPhoto
 		if err := rows.Scan(
 			&i.ID,
 			&i.ItemID,
-			&i.Url,
+			&i.Base64Data,
+			&i.MimeType,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

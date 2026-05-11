@@ -32,7 +32,8 @@ export type ItemStatus = 'active' | 'in_repair' | 'pending_disposal' | 'disposed
 export interface ItemPhoto {
   id: number
   item_id: number
-  url: string
+  base64_data: string
+  mime_type: string
   created_at: string
 }
 

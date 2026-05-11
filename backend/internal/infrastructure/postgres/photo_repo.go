@@ -27,8 +27,9 @@ func NewPhotoRepo(pool *pgxpool.Pool) *PhotoRepo {
 // Add inserts a new photo record and populates the generated ID and timestamp.
 func (r *PhotoRepo) Add(ctx context.Context, photo *entity.ItemPhoto) error {
 	row, err := r.queries.AddItemPhoto(ctx, db.AddItemPhotoParams{
-		ItemID: int64(photo.ItemID),
-		Url:    photo.URL,
+		ItemID:     int64(photo.ItemID),
+		Base64Data: photo.Base64Data,
+		MimeType:   photo.MimeType,
 	})
 	if err != nil {
 		return fmt.Errorf("PhotoRepo.Add: %w", err)
@@ -47,10 +48,11 @@ func (r *PhotoRepo) ListByItem(ctx context.Context, itemID uint64) ([]*entity.It
 	photos := make([]*entity.ItemPhoto, len(rows))
 	for i, row := range rows {
 		photos[i] = &entity.ItemPhoto{
-			ID:        uint64(row.ID),
-			ItemID:    uint64(row.ItemID),
-			URL:       row.Url,
-			CreatedAt: row.CreatedAt,
+			ID:         uint64(row.ID),
+			ItemID:     uint64(row.ItemID),
+			Base64Data: row.Base64Data,
+			MimeType:   row.MimeType,
+			CreatedAt:  row.CreatedAt,
 		}
 	}
 	return photos, nil

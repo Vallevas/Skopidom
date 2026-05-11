@@ -92,10 +92,11 @@ type ItemDetail struct {
 }
 
 type ItemPhoto struct {
-	ID        int64     `json:"id"`
-	ItemID    int64     `json:"item_id"`
-	Url       string    `json:"url"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         int64     `json:"id"`
+	ItemID     int64     `json:"item_id"`
+	Base64Data string    `json:"base64_data"`
+	MimeType   string    `json:"mime_type"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type Room struct {

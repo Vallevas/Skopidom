@@ -1,49 +1,52 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
+```
+# Dependencies
+vendor/
+
+# Compiled and build artifacts
+*.o
+*.obj
+*.a
 *.so
-*.dylib
-backend/bin/
-
-# Test binary, built with `go test -c`
-*.test
-
-# Code coverage profiles and other test artifacts
+*.dll
+*.exe
+*.pyc
+__pycache__/
+*.class
+target/
+build/
+dist/
 *.out
-coverage.*
-*.coverprofile
-profile.cov
 
-# Dependency directories
-# vendor/
-frontend/node_modules
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
 
-# Tests
-curl_tests/
-skopidom_file_structure.txt
-
-# local testing
-*-key.pem
-*.pem
-vite.config.ts
-tsconfig.tsbuildinfo
-frontend/dist/
-frontend/ssl/
-
-# Go workspace file
-go.work
-go.work.sum
-
-# Dev storage
-backend/uploads/
-frontend/dist/
-*.csv
-
-# env file
+# Environment
 .env
+.env.local
+*.env.*
 
-# Editor/IDE
-.idea/
+# Editors
 .vscode/
-opencode.json
+.idea/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Testing and coverage
+.coverage
+coverage/
+htmlcov/
+.mypy_cache/
+.pytest_cache/
+
+# Package managers
+node_modules/
+venv/
+.venv/
+```

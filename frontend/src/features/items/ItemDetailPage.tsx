@@ -68,7 +68,7 @@ function Lightbox({
 
       {/* Image */}
       <img
-        src={photos[index].url}
+        src={`${photos[index].mime_type};base64,${photos[index].base64_data}`}
         alt=""
         className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
         onClick={(e) => e.stopPropagation()}
@@ -334,7 +334,7 @@ export function ItemDetailPage() {
                   className="relative shrink-0 w-40 h-28 rounded-lg overflow-hidden bg-muted group"
                 >
                   <img
-                    src={photo.url}
+                    src={`${photo.mime_type};base64,${photo.base64_data}`}
                     alt=""
                     className="w-full h-full object-cover cursor-zoom-in"
                     onClick={() => setLightboxIndex(idx)}
@@ -383,7 +383,7 @@ export function ItemDetailPage() {
               className="shrink-0 w-40 h-28 rounded-lg overflow-hidden bg-muted opacity-70 cursor-zoom-in"
               onClick={() => setLightboxIndex(idx)}
             >
-              <img src={photo.url} alt="" className="w-full h-full object-cover" />
+              <img src={`${photo.mime_type};base64,${photo.base64_data}`} alt="" className="w-full h-full object-cover" />
             </div>
           ))}
         </div>

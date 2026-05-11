@@ -2,13 +2,14 @@
 package handler
 
 import (
+	"encoding/base64"
+	"io"
 	"net/http"
 	"strconv"
 
 	"github.com/Vallevas/Skopidom/internal/delivery/http/middleware"
-	"github.com/Vallevas/Skopidom/internal/infrastructure/storage"
+	"github.com/Vallevas/Skopidom/internal/domain/entity"
 	itemUC "github.com/Vallevas/Skopidom/internal/usecase/item"
-	"github.com/Vallevas/Skopidom/pkg/config"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -16,13 +17,29 @@ const maxUploadSize = 5 << 20 // 5 MB
 
 // UploadHandler handles photo upload and deletion for inventory items.
 type UploadHandler struct {
-	storage storage.FileStorage
-	itemUC  itemUC.UseCase
+	itemUC itemUC.UseCase
 }
 
 // NewUploadHandler constructs an UploadHandler.
-func NewUploadHandler(s storage.FileStorage, uc itemUC.UseCase) *UploadHandler {
-	return &UploadHandler{storage: s, itemUC: uc}
+func NewUploadHandler(s interface{}, uc itemUC.UseCase) *UploadHandler {
+	return &UploadHandler{itemUC: uc}
+}
+
+// detectContentType reads up to 512 bytes from the file to detect MIME type.
+func detectContentType(file io.Reader) (string, []byte, error) {
+	buf := make([]byte, 512)
+	n, err := file.Read(buf)
+	if err != nil && err != io.EOF {
+		return "", nil, err
+	}
+	contentType := http.DetectContentType(buf[:n])
+	// Read the rest of the file
+	rest, err := io.ReadAll(file)
+	if err != nil {
+		return "", nil, err
+	}
+	data := append(buf[:n], rest...)
+	return contentType, data, nil
 }
 
 // UploadItemPhoto godoc
@@ -48,17 +65,26 @@ func (h *UploadHandler) UploadItemPhoto(w http.ResponseWriter, r *http.Request) 
 	}
 	defer file.Close()
 
-	photoURL, err := h.storage.Save(r.Context(), file, header)
+	// Detect MIME type and read file content
+	mimeType, fileData, err := detectContentType(file)
 	if err != nil {
-		handleError(w, err)
+		handleError(w, wrapInvalidInput(err))
 		return
 	}
 
+	// Encode to Base64
+	base64Data := base64.StdEncoding.EncodeToString(fileData)
+
 	actorID := middleware.UserIDFromCtx(r.Context())
 
-	photo, err := h.itemUC.AddPhoto(r.Context(), itemID, photoURL, actorID)
+	photo := &entity.ItemPhoto{
+		ItemID:     itemID,
+		Base64Data: base64Data,
+		MimeType:   mimeType,
+	}
+
+	photo, err = h.itemUC.AddPhotoWithEntity(r.Context(), itemID, photo, actorID)
 	if err != nil {
-		_ = h.storage.Delete(r.Context(), photoURL)
 		handleError(w, err)
 		return
 	}
@@ -82,30 +108,10 @@ func (h *UploadHandler) DeleteItemPhoto(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Fetch the photo URL before deleting so we can remove the file.
-	photos, err := h.itemUC.ListPhotos(r.Context(), itemID)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	var photoURL string
-	for _, p := range photos {
-		if p.ID == photoID {
-			photoURL = p.URL
-			break
-		}
-	}
-
 	actorID := middleware.UserIDFromCtx(r.Context())
 	if err := h.itemUC.DeletePhoto(r.Context(), itemID, photoID, actorID); err != nil {
 		handleError(w, err)
 		return
-	}
-
-	// Remove file from storage after successful DB deletion.
-	if photoURL != "" {
-		_ = h.storage.Delete(r.Context(), photoURL)
 	}
 
 	w.WriteHeader(http.StatusNoContent)

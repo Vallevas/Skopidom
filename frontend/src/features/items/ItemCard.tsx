@@ -61,7 +61,7 @@ export function ItemCard({ item }: Props) {
 
       {firstPhoto && (
         <img
-          src={firstPhoto.url}
+          src={`${firstPhoto.mime_type};base64,${firstPhoto.base64_data}`}
           alt={item.name}
           className="w-full h-28 object-cover rounded-md"
         />

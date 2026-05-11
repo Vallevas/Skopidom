@@ -33,6 +33,9 @@ type UseCase interface {
 	ListDisposalDocuments(ctx context.Context, itemID uint64) ([]*entity.DisposalDocument, error)
 	DeleteDisposalDocument(ctx context.Context, itemID uint64, docID uint64, actorID uint64) error
 	FinalizeDisposal(ctx context.Context, itemID uint64, actorID uint64) (*entity.Item, error)
+
+	// Photo management with entity
+	AddPhotoWithEntity(ctx context.Context, itemID uint64, photo *entity.ItemPhoto, actorID uint64) (*entity.ItemPhoto, error)
 }
 
 // CreateInput holds the data required to register a new inventory item.
