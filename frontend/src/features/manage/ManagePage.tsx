@@ -83,7 +83,7 @@ function BuildingsTab() {
         {t('manage.add_building')}
       </button>
 
-      <div className="space-y-2">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {buildings.map((b) => (
           <div key={b.id} className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
             <div>
@@ -166,7 +166,7 @@ function CategoriesTab() {
         {t('manage.add_category')}
       </button>
 
-      <div className="space-y-2">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {categories.map((c) => (
           <div key={c.id} className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
             <p className="text-sm font-medium">{c.name}</p>
@@ -266,7 +266,7 @@ function RoomsTab() {
             {t('manage.add_room')}
           </button>
 
-          <div className="space-y-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {rooms.map((r) => (
               <div key={r.id} className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
                 <p className="text-sm font-medium">{r.name}</p>

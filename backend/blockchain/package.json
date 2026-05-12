@@ -1,0 +1,18 @@
+{
+  "name": "skopidom-blockchain",
+  "version": "1.0.0",
+  "description": "Blockchain integration for Skopidom audit logging with Ganache",
+  "main": "index.js",
+  "scripts": {
+    "compile": "node scripts/compile.js",
+    "ganache": "ganache --port 7545 --wallet.mnemonic 'test test test test test test test test test test test junk' --chain.chainId 1337",
+    "deploy": "node scripts/deploy.js"
+  },
+  "dependencies": {
+    "web3": "^4.0.0",
+    "ganache": "^7.9.0"
+  },
+  "devDependencies": {
+    "solc": "^0.8.20"
+  }
+}

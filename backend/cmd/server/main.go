@@ -12,11 +12,13 @@ import (
 	"time"
 
 	deliveryHTTP "github.com/Vallevas/Skopidom/internal/delivery/http"
+	"github.com/Vallevas/Skopidom/internal/infrastructure/blockchain"
 	"github.com/Vallevas/Skopidom/internal/infrastructure/postgres"
 	"github.com/Vallevas/Skopidom/internal/infrastructure/storage"
 	itemUC "github.com/Vallevas/Skopidom/internal/usecase/item"
 	userUC "github.com/Vallevas/Skopidom/internal/usecase/user"
 	"github.com/Vallevas/Skopidom/pkg/config"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 func main() {
@@ -57,8 +59,20 @@ func main() {
 	disposalDocRepo := postgres.NewDisposalDocumentRepo(pool)
 
 	// ── Audit Logger ───────────────────────────────────────────────────────
-	//auditLogger :=  blockchain.NewBlockchainAuditLogger(...)
-	auditLogger := postgres.NewPostgresAuditLogger(pool)
+	ethClient, _ := ethclient.Dial(os.Getenv("BLOCKCHAIN_RPC_URL"))
+	if err != nil {
+		log.Fatalf("ethereum client: %v", err)
+	}
+	auditLogger, _ := blockchain.NewBlockchainAuditLogger(
+		pool,
+		os.Getenv("BLOCKCHAIN_CONTRACT_ADDRESS"),
+		ethClient,
+		"0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+	)
+	if err != nil {
+		log.Fatalf("blockchain audit logger: %v", err)
+	}
+	// auditLogger := postgres.NewPostgresAuditLogger(pool)
 
 	// ── Use Cases ──────────────────────────────────────────────────────────
 	itemUseCase := itemUC.New(itemRepo, categoryRepo, roomRepo, photoRepo, disposalDocRepo, auditLogger)

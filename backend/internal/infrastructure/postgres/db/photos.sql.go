@@ -34,6 +34,31 @@ func (q *Queries) AddItemPhoto(ctx context.Context, arg AddItemPhotoParams) (Ite
 	return i, err
 }
 
+const addItemPhotoData = `-- name: AddItemPhotoData :one
+INSERT INTO item_photos_data (photo_id, data, mime_type)
+VALUES ($1, $2, $3)
+RETURNING id, photo_id, data, mime_type, created_at
+`
+
+type AddItemPhotoDataParams struct {
+	PhotoID  int64  `json:"photo_id"`
+	Data     []byte `json:"data"`
+	MimeType string `json:"mime_type"`
+}
+
+func (q *Queries) AddItemPhotoData(ctx context.Context, arg AddItemPhotoDataParams) (ItemPhotosDatum, error) {
+	row := q.db.QueryRowContext(ctx, addItemPhotoData, arg.PhotoID, arg.Data, arg.MimeType)
+	var i ItemPhotosDatum
+	err := row.Scan(
+		&i.ID,
+		&i.PhotoID,
+		&i.Data,
+		&i.MimeType,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const deleteAllItemPhotos = `-- name: DeleteAllItemPhotos :exec
 DELETE FROM item_photos WHERE item_id = $1
 `
@@ -56,6 +81,35 @@ type DeleteItemPhotoParams struct {
 func (q *Queries) DeleteItemPhoto(ctx context.Context, arg DeleteItemPhotoParams) error {
 	_, err := q.db.ExecContext(ctx, deleteItemPhoto, arg.ID, arg.ItemID)
 	return err
+}
+
+const deleteItemPhotoData = `-- name: DeleteItemPhotoData :exec
+DELETE FROM item_photos_data
+WHERE photo_id = $1
+`
+
+func (q *Queries) DeleteItemPhotoData(ctx context.Context, photoID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteItemPhotoData, photoID)
+	return err
+}
+
+const getItemPhotoData = `-- name: GetItemPhotoData :one
+SELECT id, photo_id, data, mime_type, created_at
+FROM item_photos_data
+WHERE photo_id = $1
+`
+
+func (q *Queries) GetItemPhotoData(ctx context.Context, photoID int64) (ItemPhotosDatum, error) {
+	row := q.db.QueryRowContext(ctx, getItemPhotoData, photoID)
+	var i ItemPhotosDatum
+	err := row.Scan(
+		&i.ID,
+		&i.PhotoID,
+		&i.Data,
+		&i.MimeType,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const listItemPhotos = `-- name: ListItemPhotos :many
@@ -91,4 +145,30 @@ func (q *Queries) ListItemPhotos(ctx context.Context, itemID int64) ([]ItemPhoto
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateItemPhotoData = `-- name: UpdateItemPhotoData :one
+UPDATE item_photos_data
+SET data = $2, mime_type = $3
+WHERE photo_id = $1
+RETURNING id, photo_id, data, mime_type, created_at
+`
+
+type UpdateItemPhotoDataParams struct {
+	PhotoID  int64  `json:"photo_id"`
+	Data     []byte `json:"data"`
+	MimeType string `json:"mime_type"`
+}
+
+func (q *Queries) UpdateItemPhotoData(ctx context.Context, arg UpdateItemPhotoDataParams) (ItemPhotosDatum, error) {
+	row := q.db.QueryRowContext(ctx, updateItemPhotoData, arg.PhotoID, arg.Data, arg.MimeType)
+	var i ItemPhotosDatum
+	err := row.Scan(
+		&i.ID,
+		&i.PhotoID,
+		&i.Data,
+		&i.MimeType,
+		&i.CreatedAt,
+	)
+	return i, err
 }

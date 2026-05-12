@@ -18,6 +18,7 @@ profile.cov
 # Dependency directories
 # vendor/
 frontend/node_modules
+backend/blockchain/node_modules/
 
 # Tests
 curl_tests/

@@ -12,6 +12,7 @@ import (
 type Querier interface {
 	// queries/photos.sql
 	AddItemPhoto(ctx context.Context, arg AddItemPhotoParams) (ItemPhoto, error)
+	AddItemPhotoData(ctx context.Context, arg AddItemPhotoDataParams) (ItemPhotosDatum, error)
 	BarcodeExists(ctx context.Context, barcode string) (bool, error)
 	CountDisposalDocumentsByItemID(ctx context.Context, itemID int64) (int64, error)
 	CountItemsByCategory(ctx context.Context, categoryID int64) (int64, error)
@@ -39,6 +40,7 @@ type Querier interface {
 	DeleteCategory(ctx context.Context, id int64) error
 	DeleteDisposalDocument(ctx context.Context, arg DeleteDisposalDocumentParams) error
 	DeleteItemPhoto(ctx context.Context, arg DeleteItemPhotoParams) error
+	DeleteItemPhotoData(ctx context.Context, photoID int64) error
 	DeleteRoom(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id int64) error
 	EmailExists(ctx context.Context, email string) (bool, error)
@@ -52,6 +54,7 @@ type Querier interface {
 	// Item queries — all SELECTs go through the item_details view.
 	// The view owns the JOIN logic; queries here stay intentionally simple.
 	GetItemByID(ctx context.Context, id int64) (ItemDetail, error)
+	GetItemPhotoData(ctx context.Context, photoID int64) (ItemPhotosDatum, error)
 	GetRoomByID(ctx context.Context, id int64) (GetRoomByIDRow, error)
 	GetRoomByNameAndBuilding(ctx context.Context, arg GetRoomByNameAndBuildingParams) (GetRoomByNameAndBuildingRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
@@ -71,6 +74,7 @@ type Querier interface {
 	UpdateBuilding(ctx context.Context, arg UpdateBuildingParams) error
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) error
 	UpdateItem(ctx context.Context, arg UpdateItemParams) error
+	UpdateItemPhotoData(ctx context.Context, arg UpdateItemPhotoDataParams) (ItemPhotosDatum, error)
 	UpdateItemStatus(ctx context.Context, arg UpdateItemStatusParams) error
 	UpdateItemTxHash(ctx context.Context, arg UpdateItemTxHashParams) error
 	UpdateRoom(ctx context.Context, arg UpdateRoomParams) error
