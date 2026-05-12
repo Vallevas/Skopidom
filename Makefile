@@ -4,10 +4,11 @@
 
 # ── Variables ─────────────────────────────────────────────────────────────────
 
-BACKEND_DIR := ./backend
-BINARY      := inventory
-BUILD_DIR   := $(BACKEND_DIR)/bin
-CMD         := ./cmd/server
+BACKEND_DIR  := ./backend
+FRONTEND_DIR := ./frontend
+BINARY       := inventory
+BUILD_DIR    := $(BACKEND_DIR)/bin
+CMD          := ./cmd/server
 
 DOCKER_COMPOSE := sudo docker compose
 DB_CONTAINER   := skopidom-postgres-1
@@ -20,9 +21,13 @@ DB_NAME        := skopidom
 
 # ── Development ───────────────────────────────────────────────────────────────
 
-.PHONY: run
-run: ## Run the backend server locally (requires .env and running postgres)
+.PHONY: back
+back: ## Run the backend server locally (requires .env and running postgres)
 	cd $(BACKEND_DIR) && go run $(CMD)
+
+.PHONY: front
+front: ## Run the frontend server locally
+	cd $(FRONTEND_DIR) && npm run dev -- --host 0.0.0.0 $(CMD)
 
 .PHONY: build
 build: ## Compile the binary to backend/bin/inventory
@@ -115,6 +120,15 @@ seed-dry-run: ## Validate CSV without importing (usage: make seed-dry-run FILE=i
 	cd $(BACKEND_DIR) && go run ./cmd/seed --file=$(FILE) --user=dummy@example.com --dry-run
 
 # ── Blockchain ────────────────────────────────────────────────────────────────
+
+.PHONY: compile
+compile: ##Compile blockchain
+	cd $(BACKEND_DIR)/blockchain && npm run compile
+
+.PHONY: ganache
+ganache: ##Start Ganache
+	cd $(BACKEND_DIR)/blockchain && npm run ganache
+
 .PHONY: generate-contract
 generate-contract: ## Generate Ganache contract
 	@echo "Generating Go bindings for smart contract..."
