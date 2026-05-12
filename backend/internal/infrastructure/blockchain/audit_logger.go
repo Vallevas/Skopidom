@@ -3,14 +3,14 @@ package blockchain
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"math/big"
-	"time"
 
 	"github.com/Vallevas/Skopidom/internal/domain/entity"
 	"github.com/Vallevas/Skopidom/internal/domain/repository"
+
+	"github.com/Vallevas/Skopidom/internal/infrastructure/postgres"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -56,7 +56,7 @@ func NewBlockchainAuditLogger(
 	}
 
 	return &BlockchainAuditLogger{
-		db:              &postgresAuditLogger{pool: pool},
+		db:              postgres.NewPostgresAuditLogger(pool),
 		contract:        contract,
 		contractAddress: addr,
 		ethClient:       ethClient,
@@ -157,9 +157,9 @@ func (l *BlockchainAuditLogger) logToBlockchain(ctx context.Context, event *enti
 
 // updateTxHash updates the transaction hash for an audit event in PostgreSQL
 func (l *BlockchainAuditLogger) updateTxHash(ctx context.Context, eventID uint64, txHash string) error {
-	if pgLogger, ok := l.db.(*postgresAuditLogger); ok {
+	if pgLogger, ok := l.db.(*postgres.PostgresAuditLogger); ok {
 		query := `UPDATE audit_events SET tx_hash = $1 WHERE id = $2`
-		_, err := pgLogger.pool.Exec(ctx, query, txHash, int64(eventID))
+		_, err := pgLogger.GetPool().Exec(ctx, query, txHash, int64(eventID))
 		return err
 	}
 	return nil
@@ -176,61 +176,4 @@ func (l *BlockchainAuditLogger) ListByItem(
 // GetContractAddress returns the deployed contract address
 func (l *BlockchainAuditLogger) GetContractAddress() common.Address {
 	return l.contractAddress
-}
-
-// postgresAuditLogger is a minimal postgres implementation for fallback
-type postgresAuditLogger struct {
-	pool *pgxpool.Pool
-}
-
-func (p *postgresAuditLogger) Log(ctx context.Context, event *entity.AuditEvent) error {
-	query := `
-		INSERT INTO audit_events (item_id, actor_id, action, payload, created_at)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id
-	`
-	var id int64
-	err := p.pool.QueryRow(ctx, query,
-		event.ItemID,
-		event.ActorID,
-		event.Action,
-		event.Payload,
-		time.Now(),
-	).Scan(&id)
-	if err != nil {
-		return fmt.Errorf("failed to insert audit event: %w", err)
-	}
-	event.ID = uint64(id)
-	return nil
-}
-
-func (p *postgresAuditLogger) ListByItem(ctx context.Context, itemID uint64) ([]*entity.AuditEvent, error) {
-	query := `
-		SELECT id, item_id, actor_id, action, payload, tx_hash, created_at
-		FROM audit_events
-		WHERE item_id = $1
-		ORDER BY created_at ASC
-	`
-	rows, err := p.pool.Query(ctx, query, itemID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var events []*entity.AuditEvent
-	for rows.Next() {
-		var e entity.AuditEvent
-		var createdAt time.Time
-		var txHash sql.NullString
-		err := rows.Scan(&e.ID, &e.ItemID, &e.ActorID, &e.Action, &e.Payload, &txHash, &createdAt)
-		if err != nil {
-			return nil, err
-		}
-		e.CreatedAt = createdAt
-		if txHash.Valid {
-			e.TxHash = txHash.String
-		}
-		events = append(events, &e)
-	}
-	return events, rows.Err()
 }

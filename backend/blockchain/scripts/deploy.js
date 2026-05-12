@@ -63,8 +63,9 @@ async function deploy() {
 
   console.log('Deploying from address:', account.address);
 
-  // Replace line 67-73 with this:
-  const receipt = await deployedContract.deploy({
+  const gasPrice = await web3.eth.getGasPrice();
+
+  const receipt = deployedContract.deploy({
     from: account.address,
     gas: estimatedGas,
     gasPrice: gasPrice,

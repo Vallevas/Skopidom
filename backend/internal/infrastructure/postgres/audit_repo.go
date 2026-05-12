@@ -22,11 +22,20 @@ import (
 // transaction and calls UpdateAuditEventTxHash.
 type PostgresAuditLogger struct {
 	queries *db.Queries
+	pool    *pgxpool.Pool
 }
 
 // NewPostgresAuditLogger constructs a PostgresAuditLogger backed by the pool.
 func NewPostgresAuditLogger(pool *pgxpool.Pool) *PostgresAuditLogger {
-	return &PostgresAuditLogger{queries: db.New(stdlib.OpenDBFromPool(pool))}
+	return &PostgresAuditLogger{
+		queries: db.New(stdlib.OpenDBFromPool(pool)),
+		pool:    pool,
+	}
+}
+
+// GetPool returns the underlying connection pool for direct queries.
+func (l *PostgresAuditLogger) GetPool() *pgxpool.Pool {
+	return l.pool
 }
 
 // Log persists an audit event to PostgreSQL.
@@ -92,4 +101,3 @@ func mapAuditEvent(row db.ListAuditEventsByItemRow) *entity.AuditEvent {
 		CreatedAt: row.CreatedAt,
 	}
 }
-

@@ -59,13 +59,19 @@ func main() {
 	disposalDocRepo := postgres.NewDisposalDocumentRepo(pool)
 
 	// ── Audit Logger ───────────────────────────────────────────────────────
-	ethClient, _ := ethclient.Dial("http://127.0.0.1:7545")
+	ethClient, _ := ethclient.Dial(os.Getenv("BLOCKCHAIN_RPC_URL"))
+	if err != nil {
+		log.Fatalf("ethereum client: %v", err)
+	}
 	auditLogger, _ := blockchain.NewBlockchainAuditLogger(
 		pool,
-		"0x0x5FbDB2315678afecb367f032d93F642f64180aa3",
+		os.Getenv("BLOCKCHAIN_CONTRACT_ADDRESS"),
 		ethClient,
 		"0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 	)
+	if err != nil {
+		log.Fatalf("blockchain audit logger: %v", err)
+	}
 	// auditLogger := postgres.NewPostgresAuditLogger(pool)
 
 	// ── Use Cases ──────────────────────────────────────────────────────────
